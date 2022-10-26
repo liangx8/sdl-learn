@@ -1,14 +1,14 @@
 #include <SDL.h>
 #include <malloc.h>
 
-struct sdl_data{
+struct app_data{
     SDL_Window      *win;
     SDL_Renderer    *ren;
 };
 
-struct sdl_data *sdl_create(void)
+struct app_data *sdl_create(void)
 {
-    struct sdl_data *psd;
+    struct app_data *psd;
     SDL_Window      *win;
     SDL_Renderer    *ren;
     //First we need to start up SDL, and make sure it went ok
@@ -32,7 +32,7 @@ struct sdl_data *sdl_create(void)
     }
 
 
-    psd=malloc(sizeof(struct sdl_data));
+    psd=malloc(sizeof(struct app_data));
     psd->win=win;
     psd->ren=ren;
     return psd;
@@ -40,25 +40,24 @@ error_exit:
     SDL_Quit();
     return NULL;
 }
-void sdl_free(struct sdl_data *ptr)
+void sdl_cleanup(struct app_data *ptr)
 {
     SDL_DestroyRenderer(ptr->ren);
     SDL_DestroyWindow(ptr->win);
+    SDL_Quit();
     free(ptr);
 }
-void sdl_run(struct sdl_data *pd)
+void sdl_run(struct app_data *pd)
 {
     SDL_Surface *surf;
     surf = SDL_CreateRGBSurface(0, 96, 96, 32, 0, 0, 0, 0);
-    SDL_FillRect(surf, NULL, SDL_MapRGB(surf->format, 255, 0, 0));
+    SDL_FillRect(surf, NULL, SDL_MapRGB(surf->format, 0xea, 0xea, 0));
     SDL_Texture *tex = SDL_CreateTextureFromSurface(pd->ren, surf);
     SDL_FreeSurface(surf);
     if (tex == NULL)
     {
-        SDL_DestroyRenderer(pd->ren);
-        SDL_DestroyWindow(pd->win);
-        SDL_Quit();
-        printf("SDL_CreateTextureFromSurface error:%s", SDL_GetError());
+        sdl_cleanup(pd);
+        printf("SDL_CreateRGBSurface error:%s", SDL_GetError());
         return;
     }
     for (int i = 0; i < 3; ++i)
