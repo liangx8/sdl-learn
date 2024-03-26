@@ -50,17 +50,16 @@ void sdl_cleanup(struct app_data *ptr)
 void sdl_run(struct app_data *pd)
 {
     SDL_Surface *surf;
-    surf = SDL_CreateRGBSurface(0, 96, 96, 32, 0, 0, 0, 0);
-    SDL_FillRect(surf, NULL, SDL_MapRGB(surf->format, 0xea, 0xea, 0));
+    surf = SDL_CreateRGBSurface(0, 50, 50, 32, 0, 0, 0, 0);
+    SDL_FillRect(surf, NULL, SDL_MapRGB(surf->format, 0xea, 0xea, 0xea));
     SDL_Texture *tex = SDL_CreateTextureFromSurface(pd->ren, surf);
-    SDL_FreeSurface(surf);
     if (tex == NULL)
     {
         sdl_cleanup(pd);
         printf("SDL_CreateRGBSurface error:%s", SDL_GetError());
         return;
     }
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < 10; ++i)
     {
         SDL_RenderClear(pd->ren);
         SDL_RenderCopy(pd->ren, tex, NULL, NULL);
@@ -68,6 +67,6 @@ void sdl_run(struct app_data *pd)
         SDL_Delay(1000);
         printf("second %d\n", i);
     }
-    SDL_DestroyTexture(tex); 
-
+    SDL_DestroyTexture(tex);
+    SDL_FreeSurface(surf);
 }

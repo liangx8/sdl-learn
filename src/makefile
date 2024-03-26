@@ -6,7 +6,7 @@ CFLAGS+=$(shell sdl2-config --cflags)
 TARGET=sdl
 
 
-SRCS=$(shell ls *.c)
+SRCS=$(wildcard *.c)
 OBJS=${SRCS:.c=.o}
 LDFLAGS=-Wall -g
 LDFLAGS+=$(shell sdl2-config --libs)
