@@ -1,6 +1,13 @@
 {
     "files.associations": {
+        "*.kicad_sym": "lisp",
+        "*.kicad_mod": "lisp",
         "sdl.h": "c",
-        "malloc.h": "c"
+        "malloc.h": "c",
+        "abs_struct.h": "c",
+        "ce_app.h": "c",
+        "resource.h": "c",
+        "sdl_ttf.h": "c",
+        "queue.h": "c"
     }
 }

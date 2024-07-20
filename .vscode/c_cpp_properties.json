@@ -3,11 +3,9 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**",
-                "/usr/include/SDL2"
-
+                "${workspaceFolder}/**"
             ],
-            "defines": [],
+            "defines": ["TEST_MAIN"],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "gnu17",
             "cppStandard": "gnu++17",

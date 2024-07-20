@@ -1,72 +1,113 @@
-#include <SDL.h>
-#include <malloc.h>
+#include <stdio.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
+#include "cengin/ce_app.h"
+#include "resource.h"
+#define BORDER 100
+const char *random_file(long *pidx);
 
-struct app_data{
-    SDL_Window      *win;
-    SDL_Renderer    *ren;
-};
-
-struct app_data *sdl_create(void)
+void setPicture(CE_APP *app,long *pidx)
 {
-    struct app_data *psd;
-    SDL_Window      *win;
-    SDL_Renderer    *ren;
-    //First we need to start up SDL, and make sure it went ok
-    if (SDL_Init(SDL_INIT_VIDEO))
-    {
-        printf("SDL init error %s\n", SDL_GetError());
-        return NULL;
-    }
-    win=SDL_CreateWindow("SDL教程",100,100,640,480,SDL_WINDOW_SHOWN);
-    if(win == NULL)
-    {
-        printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
-        goto error_exit;
-    }
-    ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    if (ren == NULL)
-    {
-        SDL_DestroyWindow(win);
-        printf("SDL_CreateRenderer Error: %s\n", SDL_GetError());
-        goto error_exit;
-    }
-
-
-    psd=malloc(sizeof(struct app_data));
-    psd->win=win;
-    psd->ren=ren;
-    return psd;
-error_exit:
-    SDL_Quit();
-    return NULL;
-}
-void sdl_cleanup(struct app_data *ptr)
-{
-    SDL_DestroyRenderer(ptr->ren);
-    SDL_DestroyWindow(ptr->win);
-    SDL_Quit();
-    free(ptr);
-}
-void sdl_run(struct app_data *pd)
-{
-    SDL_Surface *surf;
-    surf = SDL_CreateRGBSurface(0, 50, 50, 32, 0, 0, 0, 0);
-    SDL_FillRect(surf, NULL, SDL_MapRGB(surf->format, 0xea, 0xea, 0xea));
-    SDL_Texture *tex = SDL_CreateTextureFromSurface(pd->ren, surf);
-    if (tex == NULL)
-    {
-        sdl_cleanup(pd);
-        printf("SDL_CreateRGBSurface error:%s", SDL_GetError());
+    const char *fname=random_file(pidx);
+    if(fname==NULL){
+        *pidx=0;
         return;
     }
-    for (int i = 0; i < 10; ++i)
-    {
-        SDL_RenderClear(pd->ren);
-        SDL_RenderCopy(pd->ren, tex, NULL, NULL);
-        SDL_RenderPresent(pd->ren);
-        SDL_Delay(1000);
-        printf("second %d\n", i);
+    SDL_Surface *surf;
+    surf=IMG_Load(fname);
+    if(surf==NULL){
+        SDL_Log("Load file %s\n",IMG_GetError());
+    } else {
+        SDL_Log("width: %3d, height: %3d:filename:%s\n",surf->w,surf->h,fname);
+        ce_blit_surface(app,surf,NULL,NULL);
+        SDL_FreeSurface(surf);
     }
-    SDL_DestroyTexture(tex);
-    SDL_FreeSurface(surf);
+}
+int ea(CE_APP *app,SDL_Event *ev)
+{
+    RESOURCES *res=(RESOURCES*)app->payload;
+    if(ev->type==SDL_KEYUP){
+        switch (ev->key.keysym.sym){
+            case 'n':
+                setPicture(app,(long *)app->payload);
+                return 0;
+            case 'f':
+                //SDL_RenderCopy(app->render,res->background,NULL,NULL);
+                SDL_RenderPresent(app->render);
+                return 1;
+            case 'r':
+                ce_show_text(app,&res->tfont,"Hello 2024",20,100);
+                SDL_RenderPresent(app->render);
+            case SDLK_UP:
+            case SDLK_DOWN:
+            case SDLK_LEFT:
+            case SDLK_RIGHT:
+            return 2;
+        }
+    }
+    return 0;
+}
+int cmd_sample(void *);
+int work(CE_APP *app){
+    Uint32 *p=(Uint32 *)app->payload;
+    Uint32 now=SDL_GetTicks();
+    if((now - *p) > 800){
+        //SDL_Log("something happen %d",*p);
+        *p=now;
+        cmds_put(&app->cmds,cmd_sample,(void *)(long)now);
+    }
+    return 0;
+}
+int load_resources(CE_APP *app,RESOURCES *res);
+void free_res(RESOURCES *res);
+void sdl_sample()
+{
+    RESOURCES res;
+    res.val=0;
+    CE_APP *app=ce_init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
+    if(app==NULL){
+        return;
+    }
+    app->present=work;
+    app->payload=&res;
+    if(cmds_init(&app->cmds)){
+        return;
+    }
+
+    const int win_w=app->dm.w-BORDER*8;
+    const int win_h=app->dm.h-BORDER-BORDER;
+    if(ce_create_window(app,"方块消除",win_w,win_h,SDL_WINDOW_SHOWN)){
+        return;
+    }
+    SDL_Log("建立窗口[宽:%d 高:%d]",win_w,win_h);
+    const int img_flag= IMG_INIT_PNG;
+    if(!(IMG_Init(img_flag) & img_flag)){
+        SDL_LogError(0,"Image initial failure with error %s\n",IMG_GetError());
+        goto error_exit1;
+    }
+    if(TTF_Init()){
+        SDL_LogError(0,"TTF initial failure with error %s\n",TTF_GetError());
+        goto error_exit2;
+    }
+
+    if(load_resources(app,&res)){
+        SDL_Log("load resources error");
+        goto error_exit2;
+    }
+    if(SDL_RenderCopy(app->render,res.background,NULL,NULL)){
+        SDL_Log("RenderCopy() %s",SDL_GetError());
+        goto error_exit3;
+    }
+
+    ce_add_action(app,ea);
+    setPicture(app,(long *)&res);
+    SDL_RenderPresent(app->render);
+    ce_run(app);
+    cmds_close(&app->cmds);
+error_exit3:
+    free_res(&res);
+error_exit2:
+    IMG_Quit();
+error_exit1:
+    ce_cleanup(app);
 }

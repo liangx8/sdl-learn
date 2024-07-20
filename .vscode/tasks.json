@@ -38,6 +38,16 @@
                 "clear": false
             },
             "problemMatcher":[]
+        },{
+            "label": "build test",
+            "type": "shell",
+            "command":"make",
+            "args": ["OPTS=-DTEST_MAIN -g"],
+            "options": {
+                "cwd": "${workspaceFolder}/src"
+            },
+            "problemMatcher":"$gcc"
+
         }
 
     ]

@@ -1,29 +1,38 @@
 .PHONY: clean
 CC=gcc
 RM=rm -rf
-CFLAGS=-Wall -g
-CFLAGS+=$(shell sdl2-config --cflags)
+#CFLAGS+=$(shell pkgconf sdl2 --cflags)
+CFLAGS=-Wall
+CFLAGS+=-D_REENTRANT
 TARGET=sdl
-
+ifeq (${OPTS}x,x)
+	CFLAGS+=-O2
+else
+	CFLAGS+=${OPTS}
+endif
 
 SRCS=$(wildcard *.c)
+SRCS+=$(wildcard cengin/*.c)
 OBJS=${SRCS:.c=.o}
-LDFLAGS=-Wall -g
-LDFLAGS+=$(shell sdl2-config --libs)
+LDFLAGS=-Wall
+LDFLAGS+=-lSDL2
+LDFLAGS+=-lSDL2_image
+LDFLAGS+=-lSDL2_ttf
 LDFLAGS+=# -static
 
 all:${TARGET}
 	@echo "*** Done ***"
 release:${OBJS}
-	${CC} -o ${TARGET} ${OBJS} ${LDFLAGS} -static
+	${CC} -o ${TARGET} ${OBJS} ${LDFLAGS}
 	strip	${TARGET}
 	@echo "*** Done ***"
 ${TARGET}:${OBJS}
 	${CC} -o $@ ${OBJS} ${LDFLAGS}
 clean:
-	${RM} *.o ${TARGET} *~
+	${RM} ${TARGET} *~
+	find . -name \*.o -exec ${RM} \{} \;
 
 #%.o:%.cpp
 .c.o:
-	${CC} -c $< ${CFLAGS}
+	${CC} -c $< -o $@ ${CFLAGS}
 
