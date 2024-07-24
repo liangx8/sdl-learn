@@ -20,12 +20,11 @@ typedef struct {
 
 struct _CE_APP{
     SDL_Window      *win;
+    int             win_w,win_h;
     SDL_Renderer    *render;
     SDL_DisplayMode dm;
-    int             actionSize;
-    int             actionIdx;
-    // ce_add_action会处理好以下字段
-    EventAction     *actions;
+    // on_event() 返回任何非０即视为程序要退出
+    EventAction     on_event;
     PresentAction   present;
     THREAD_CMD      cmds;
     void            *payload;
@@ -50,7 +49,6 @@ CE_APP* ce_init (int flags);
 int     ce_create_window(CE_APP *app,const char *title,int width,int height,int flags);
 void    ce_cleanup(CE_APP *app);
 int     ce_blit_surface(CE_APP *app,SDL_Surface *surf,SDL_Rect *src,SDL_Rect *dst);
-int     ce_add_action(CE_APP *app,EventAction ea);
 /**
  * @brief 把texture不变形渲染到屏幕的指定位置上
  */
@@ -100,3 +98,11 @@ int cmds_close(THREAD_CMD *);
 int cmds_init(THREAD_CMD *);
 int cmds_put(THREAD_CMD *,Command cmd,void *);
 
+////////////////////////////////////////////////////////////////////////////////////////
+/// error macro
+////////////////////////////////////////////////////////////////////////////////////////
+
+#define ERROR(geterr)SDL_LogError(0,"%s(%d)%s",__FILE__,__LINE__,geterr());
+
+#define HANDLER_NOT_ZERO_SDLERR_RET_NEG(act) if(act){SDL_LogError(0,"%s(%d)%s",__FILE__,__LINE__,SDL_GetError());return -1;}
+#define HANDLER_NOT_ZERO_RET_NEG(act) if(act){SDL_LogError(0,"%s(%d):ERROR_WRAP",__FILE__,__LINE__);return -1;}

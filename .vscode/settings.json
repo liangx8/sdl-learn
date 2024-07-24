@@ -8,6 +8,7 @@
         "ce_app.h": "c",
         "resource.h": "c",
         "sdl_ttf.h": "c",
-        "queue.h": "c"
+        "queue.h": "c",
+        "game.h": "c"
     }
 }

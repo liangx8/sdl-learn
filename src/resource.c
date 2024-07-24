@@ -29,8 +29,52 @@ const char *const fontname[]={
 "/usr/share/imlib2/data/fonts/cinema.ttf",
 "/usr/share/imlib2/data/fonts/morpheus.ttf"
 };
-
-
+const char *menustr="开始游戏按键控制难度玩腻了";
+const int rng[]={            4,      8,  10,   13};
+#define CHAR_COUNT 13
+int load_menu(CE_APP *app,RESOURCES *res)
+{
+    SDL_Color c={0xf3,0xb8,0xf0};
+    TTF_Font *font=TTF_OpenFont(fontname[10],56);
+    if(font==NULL){
+        SDL_LogError(0,"open font %s error %s",fontname[10],TTF_GetError());
+        return -1;
+    }
+    int win_w = app->win_w;
+    
+    SDL_Texture *tx=ce_texture_create_from_text(app,font,menustr,c);
+    if(tx==NULL){
+        return -1;
+    }
+    int w,h;
+    SDL_QueryTexture(tx,NULL,NULL,&w,&h);
+    w=w/CHAR_COUNT;
+    int st=0;
+    int y=150;
+    for(int ix=0;ix<ITEM_COUNT;ix++){
+        res->range[ix].x=st*w;
+        res->range[ix].y=0;
+        res->range[ix].w=(rng[ix]-st) *w;
+        res->range[ix].h=h;
+        st=rng[ix];
+        SDL_Rect *src=&res->range[ix];
+        int x=(win_w-src->w)/2;
+        res->range[ix+ITEM_COUNT].x=x;
+        res->range[ix+ITEM_COUNT].y=y;
+        res->range[ix+ITEM_COUNT].w=src->w;
+        res->range[ix+ITEM_COUNT].h=src->h;
+        y += 55 + src->h;
+    }
+    res->menuSel=0;
+    res->oldMenuSel=0;
+    
+    // for(int ix=0;ix<5;ix++){
+    //     SDL_Log("range:{%d,%d,%d,%d}",res->range[ix].x,res->range[ix].y,res->range[ix].w,res->range[ix].h);
+    // }
+    res->menuitem=tx;
+    TTF_CloseFont(font);
+    return 0;
+}
 int paint_background(SDL_Renderer *render,int w,int h,void * unused)
 {
     SDL_SetRenderDrawColor(render,0,0,255,255);
@@ -45,7 +89,7 @@ int paint_bg(void* pixels,int pitch,int height,void *param){
     int width=pitch/4;
     Uint32 *p=(Uint32*)pixels;
 #ifdef RGBA8888
-    const Uint32 bg     = RGBA8888(0x12,0x34,0x56,0x0);
+    const Uint32 bg     = RGBA8888(0x4b,0x7d,0x91,0xff);
     const Uint32 line   = RGBA8888(0x80,0x80,0x80,0x80);
     const Uint32 border = RGBA8888(0x80,0xff,0x80,0xff);
 #else
@@ -73,12 +117,6 @@ int paint_bg(void* pixels,int pitch,int height,void *param){
     }
     
     return 0;
-}
-void show_width(SDL_Texture *tex)
-{
-    int w,h;
-    SDL_QueryTexture(tex,NULL,NULL,&w,&h);
-    SDL_Log("font texture: %d,%d",w,h);
 }
 
 int load_font(CE_APP *app,RESOURCES *res)
@@ -116,6 +154,9 @@ int load_resources(CE_APP *app,RESOURCES *res)
         return -1;
     }
     res->background=ptt;
+    if(load_menu(app,res)){
+        return -1;
+    }
     return load_font(app,res);
 }
 void free_res(RESOURCES *res)

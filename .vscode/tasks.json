@@ -24,8 +24,10 @@
         {
             "label": "CLEAN",
             "type": "shell",
-            "command":"make",
-            "args": ["clean"],
+            "command": "make",
+            "args": [
+                "clean"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}/src"
             },
@@ -37,18 +39,19 @@
                 "showReuseMessage": true,
                 "clear": false
             },
-            "problemMatcher":[]
-        },{
+            "problemMatcher": []
+        },
+        {
             "label": "build test",
             "type": "shell",
-            "command":"make",
-            "args": ["OPTS=-DTEST_MAIN -g"],
+            "command": "make",
+            "args": [
+                "OPTS=-g"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}/src"
             },
-            "problemMatcher":"$gcc"
-
+            "problemMatcher": "$gcc"
         }
-
     ]
 }

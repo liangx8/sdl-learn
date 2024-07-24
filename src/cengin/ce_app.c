@@ -5,18 +5,19 @@
 
 CE_APP* ce_init (int flags)
 {
-    const int us=(sizeof(EventAction));
     if (SDL_Init(flags))
     {
         SDL_LogError(0,"SDL init error %s",SDL_GetError());
         return NULL;
     }
-    
+    int num;
+    if((num=SDL_NumJoysticks())<1){
+        SDL_LogWarn(0,"没发现手柄");
+    } else {
+        SDL_Log("检测到%d个手柄",num);
+    }
     CE_APP *winren=malloc(sizeof(CE_APP));
     SDL_GetCurrentDisplayMode(0,&(winren->dm));
-    winren->actions=malloc(us*INIT_ACTION_SIZE);
-    winren->actionSize=INIT_ACTION_SIZE;
-    winren->actionIdx=0;
     return winren;
 
 }
@@ -32,6 +33,8 @@ int ce_create_window (CE_APP *app,const char *title,int width,int height,int fla
     }
     app->win=win;
     app->render=ren;
+    app->win_w=width;
+    app->win_h=height;
     SDL_SetWindowTitle(win,title);
     return 0;
 }
@@ -39,7 +42,7 @@ void ce_cleanup(CE_APP *app)
 {
     SDL_DestroyRenderer(app->render);
     SDL_DestroyWindow(app->win);
-    free(app->actions);
+    
     free(app);
 }
 
@@ -67,21 +70,7 @@ int ce_blit_surface  (CE_APP *app,SDL_Surface *surf,SDL_Rect *src,SDL_Rect *dst)
     return 0;
 }
 
-int ce_add_action(CE_APP *app,EventAction ea){
-    const int us=sizeof(EventAction);
-    EventAction *ptr=app->actions;
-    int idx=app->actionIdx;
-    ptr += idx;
-    *ptr=ea;
-    app->actionIdx =idx +1;
-    if(app->actionIdx == app->actionSize){
-        SDL_Log("event action array is realloc() because size enlarge");
-        int size=app->actionSize;
-        app->actions=realloc(app->actions,us * size *2);
-        app->actionSize=size * 2;
-    }
-    return 0;
-}
+
 int ce_run(CE_APP *app)
 {
     SDL_Event ev;
@@ -90,11 +79,9 @@ int ce_run(CE_APP *app)
             if(ev.type==SDL_QUIT){
                 goto outer_break;
             }
-            for(int ix=0;ix<app->actionIdx;ix++){
-                int res=(*(app->actions + ix))(app,&ev);
-                if(res){
-                    SDL_Log("return non-zero at event action");
-                }
+            int res=app->on_event(app,&ev);
+            if(res){
+                goto outer_break;
             }
         }
         app->present(app);

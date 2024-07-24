@@ -48,27 +48,19 @@ int ea(CE_APP *app,SDL_Event *ev)
     return 0;
 }
 int cmd_sample(void *);
-int work(CE_APP *app){
-    Uint32 *p=(Uint32 *)app->payload;
-    Uint32 now=SDL_GetTicks();
-    if((now - *p) > 800){
-        //SDL_Log("something happen %d",*p);
-        *p=now;
-        cmds_put(&app->cmds,cmd_sample,(void *)(long)now);
-    }
-    return 0;
-}
+int menu_set(CE_APP *app);
 int load_resources(CE_APP *app,RESOURCES *res);
 void free_res(RESOURCES *res);
+int menu_event(CE_APP *app,SDL_Event *ev);
+void game_init(int rows,int cols);
 void sdl_sample()
 {
     RESOURCES res;
     res.val=0;
-    CE_APP *app=ce_init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
+    CE_APP *app=ce_init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK);
     if(app==NULL){
         return;
     }
-    app->present=work;
     app->payload=&res;
     if(cmds_init(&app->cmds)){
         return;
@@ -98,8 +90,8 @@ void sdl_sample()
         SDL_Log("RenderCopy() %s",SDL_GetError());
         goto error_exit3;
     }
-
-    ce_add_action(app,ea);
+    game_init(46,35);
+    menu_set(app);
     setPicture(app,(long *)&res);
     SDL_RenderPresent(app->render);
     ce_run(app);
