@@ -15,9 +15,7 @@ SRCS=$(wildcard *.c)
 SRCS+=$(wildcard cengin/*.c)
 OBJS=${SRCS:.c=.o}
 LDFLAGS=-Wall
-LDFLAGS+=-lSDL2
-LDFLAGS+=-lSDL2_image
-LDFLAGS+=-lSDL2_ttf
+LDFLAGS+=-lSDL3
 LDFLAGS+=# -static
 
 all:${TARGET}

@@ -9,6 +9,7 @@
         "resource.h": "c",
         "sdl_ttf.h": "c",
         "queue.h": "c",
-        "game.h": "c"
+        "game.h": "c",
+        "sdl_main.h": "c"
     }
 }
