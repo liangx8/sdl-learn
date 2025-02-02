@@ -10,3 +10,18 @@ void print_array(unsigned short v[],int size)
     }
     printf("\n");
 }
+void print_square(char *data)
+{
+    printf("====================");
+    for(int ix=0;ix<64;ix++){
+        if((ix % 8) == 0){
+            printf("\n");
+        }
+        if(*(data+ix)){
+            printf("*");
+        } else {
+            printf(".");
+        }
+    }
+    printf("\n====================\n");
+}
