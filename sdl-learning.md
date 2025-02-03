@@ -3,3 +3,7 @@
 [SDL Documentation](http://wiki.libsdl.org/moin.fcg/FrontPage "ＡＰＩ索引")
 
 [Beginning Game Programming V2.0](https://lazyfoo.net/tutorials/SDL/index.php "例子简单，容易看懂")
+
+[SDL3 sample](https://examples.libsdl.org/SDL3/renderer/01-clear "别想太多")
+
+[SDL3 libraries](https://wiki.libsdl.org/SDL3/Libraries "库")
