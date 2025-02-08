@@ -3,7 +3,6 @@ CC=gcc
 RM=rm -rf
 #CFLAGS+=$(shell pkgconf sdl2 --cflags)
 CFLAGS=-Wall
-CFLAGS+=-D_REENTRANT
 TARGET=sdl
 ifeq (${OPTS}x,x)
 	CFLAGS+=-O2
@@ -15,7 +14,8 @@ SRCS=$(wildcard *.c)
 SRCS+=$(wildcard cengin/*.c)
 OBJS=${SRCS:.c=.o}
 LDFLAGS=-Wall
-LDFLAGS+=-lSDL3
+LDFLAGS+=-lSDL2
+LDFLAGS+=-lSDL2_ttf
 LDFLAGS+=# -static
 
 all:${TARGET}

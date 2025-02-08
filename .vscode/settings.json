@@ -10,6 +10,8 @@
         "sdl_ttf.h": "c",
         "queue.h": "c",
         "game.h": "c",
-        "sdl_main.h": "c"
+        "sdl_main.h": "c",
+        "appstate.h": "c",
+        "cpl.h": "c"
     }
 }
