@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <malloc.h>
-
+#include <unistd.h>
 //#include <SDL3/SDL.h>
 #include "appstate.h"
 #include <SDL2/SDL_ttf.h>
@@ -129,8 +129,8 @@ void releaseAppState(struct APPSTATE *ptr)
 }
 const int fps=1000/24;
 
-
-int main(int argc,char *argv[])
+void test_pcf(const char *pcfname);
+int app(void)
 {
     struct APPSTATE aps;
     if(SDL_Init(SDL_INIT_VIDEO)){
@@ -179,6 +179,21 @@ int main(int argc,char *argv[])
     SDL_Quit();
     return 0;
 }
+int main(int argc,char **argv)
+{
+    int opt;
+    while((opt=getopt(argc,argv,"t:"))!=-1){
+        switch(opt){
+        case 't':
+        test_pcf("/usr/share/fonts/wenquanyi/wenquanyi_13px.pcf");
+        return 0;
+        case '?':
+        printf("wrong arguments\n");
+        return 0;
+        }
+    }
+    return app();
+}
 
 
 
@@ -218,28 +233,3 @@ const char *const fontname[]={
 "/usr/share/fonts/cantarell/Cantarell-VF.otf",
 "/usr/share/imlib2/data/fonts/morpheus.ttf"
 };
-/*
-// 每秒60帧
-SDL_AppResult SDL_AppIterate(void *appstate)
-{
-    struct APPSTATE *aps=appstate;
-    Uint64 now= SDL_GetTicks();
-    if(now - aps->tick >fps ){
-        aps->tick=now;
-        const uint64_t base=now / fps;
-        SDL_SetRenderDrawColor(aps->render,base & 0xff,0xff - (base & 0xff),(base + 127) & 0xff,0xff);
-        SDL_RenderClear(aps->render);
-        SDL_FRect dst={(aps->winsize.x-AREA_W)/2,(aps->winsize.y-AREA_H)/2,AREA_W,AREA_H};
-        SDL_RenderTexture(aps->render,aps->texture,NULL,&dst);
-        //SDL_RenderTextureTiled(aps->render,aps->texture,NULL,1.,NULL);
-        SDL_RenderPresent(aps->render);
-    }
-    return SDL_APP_CONTINUE;
-}
-void SDL_AppQuit(void *appstate,SDL_AppResult result)
-{
-    struct APPSTATE *aps=appstate;
-    SDL_DestroyTexture(aps->texture);
-    free(appstate);
-}
-*/
