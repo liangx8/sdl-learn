@@ -10,15 +10,14 @@ else
 	CFLAGS+=${OPTS}
 endif
 
-SRCS=$(wildcard *.c)
-SRCS+=$(wildcard cengin/*.c)
-OBJS=${SRCS:.c=.o}
+SRCS=$(wildcard src/*.c)
+OBJS=${addprefix obj/,${notdir ${SRCS:.c=.o}}}
 LDFLAGS=-Wall
 LDFLAGS+=-lSDL2
 LDFLAGS+=-lSDL2_ttf
 LDFLAGS+=# -static
 
-all:${TARGET}
+all:mkobj ${TARGET}
 	@echo "*** Done ***"
 release:${OBJS}
 	${CC} -o ${TARGET} ${OBJS} ${LDFLAGS}
@@ -28,9 +27,10 @@ ${TARGET}:${OBJS}
 	${CC} -o $@ ${OBJS} ${LDFLAGS}
 clean:
 	${RM} ${TARGET} *~
-	find . -name \*.o -exec ${RM} \{} \;
-
+	rm -rf obj
 #%.o:%.cpp
-.c.o:
+obj/%.o:src/%.c
 	${CC} -c $< -o $@ ${CFLAGS}
 
+mkobj:
+	mkdir -p obj
