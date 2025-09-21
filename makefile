@@ -26,8 +26,7 @@ release:${OBJS}
 ${TARGET}:${OBJS}
 	${CC} -o $@ ${OBJS} ${LDFLAGS}
 clean:
-	${RM} ${TARGET} *~
-	rm -rf obj
+	${RM} ${TARGET} *~ obj/
 #%.o:%.cpp
 obj/%.o:src/%.c
 	${CC} -c $< -o $@ ${CFLAGS}

@@ -129,7 +129,6 @@ void releaseAppState(struct APPSTATE *ptr)
 }
 const int fps=1000/24;
 
-void test_pcf(const char *pcfname);
 int app(void)
 {
     struct APPSTATE aps;
@@ -185,7 +184,7 @@ int main(int argc,char **argv)
     while((opt=getopt(argc,argv,"t:"))!=-1){
         switch(opt){
         case 't':
-        test_pcf("/usr/share/fonts/wenquanyi/wenquanyi_13px.pcf");
+        //test_pcf("/usr/share/fonts/wenquanyi/wenquanyi_13px.pcf");
         return 0;
         case '?':
         printf("wrong arguments\n");
