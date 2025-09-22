@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <unistd.h>
-//#include <SDL3/SDL.h>
 #include "appstate.h"
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_main.h>
 
 #define BG_BORDER_R 0x23
 #define BG_BORDER_G 0xbf
@@ -105,12 +105,20 @@ int initAppState(struct APPSTATE *ptr)
     ptr->textureRect.h=hi-BOARDER_WIDTH * 2;
     SDL_Texture *texture=cpl_create_texture_paint_pixels(ptr->render,ptr->textureRect.w,ptr->textureRect.h,pt,NULL);
     if(texture==NULL){
+        SDL_DestroyRenderer(ptr->render);
+        SDL_DestroyWindow(ptr->win);
         SDL_Log("texture error (%s)",SDL_GetError());
         return -1;
     }
     ptr->texture=texture;
     //cpl_create_texture_ascii_ucs2(ptr->render,fontname[0],red,30,&ptr->font_top);
-    cpl_create_texture_ascii(ptr->render,fontname[0],red,30,&ptr->font_top);
+    if(cpl_create_texture_ascii(ptr->render,fontname[0],red,30,&ptr->font_top)){
+        SDL_DestroyRenderer(ptr->render);
+        SDL_DestroyWindow(ptr->win);
+        SDL_DestroyTexture(ptr->texture);
+        SDL_Log("texture error (%s)",SDL_GetError());
+        return -1;
+    }
     ptr->cpunum=SDL_GetCPUCount();
     SDL_Log("window size(h:%d,w:%d) CPU cores: \033[0;37;42m%d\033[0m\n",ptr->dm.h,ptr->dm.w,ptr->cpunum);
     ptr->runing=1;
@@ -197,18 +205,18 @@ int main(int argc,char **argv)
 
 
 const char *const fontname[]={
-"/usr/share/fonts/SpaceMono-Regular.ttf",
+    "/usr/share/fonts/gnu-free/FreeMonoOblique.otf",
+    "/usr/share/fonts/SpaceMono-Regular.ttf",
+    "/usr/share/fonts/noto-cjk/NotoSerifCJK-ExtraLight.ttc",
+"/usr/share/fonts/落落-卿本佳人.ttf",
+"/usr/share/fonts/汉堡包手机字体.ttf",
+"/usr/share/fonts/德彪钢笔行书字库(3月9日更新).ttf",
 "/usr/share/fonts/gnu-free/FreeMono.otf",
-"/usr/share/fonts/noto-cjk/NotoSerifCJK-ExtraLight.ttc",
 "/usr/share/fonts/SpaceMono-Bold.ttf",
 "/usr/share/fonts/SpaceMono-BoldItalic.ttf",
 "/usr/share/fonts/SpaceMono-Italic.ttf",
-"/usr/share/fonts/德彪钢笔行书字库(3月9日更新).ttf",
 "/usr/share/imlib2/data/fonts/notepad.ttf",
 "/usr/share/fonts/noto/NotoColorEmoji.ttf",
-"/usr/share/fonts/汉堡包手机字体.ttf",
-"/usr/share/fonts/gnu-free/FreeMonoOblique.otf",
-"/usr/share/fonts/落落-卿本佳人.ttf",
 "/usr/share/fonts/gnu-free/FreeMonoBold.otf",
 "/usr/share/fonts/gnu-free/FreeMonoBoldOblique.otf",
 "/usr/share/feh/fonts/yudit.ttf",

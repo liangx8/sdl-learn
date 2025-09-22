@@ -27,7 +27,7 @@ int app_run(struct APPSTATE *aps,Uint32 tick)
         SDL_SetRenderDrawColor(aps->render,r,g,b,a);
         SDL_RenderClear(aps->render);
         SDL_RenderCopy(aps->render,aps->texture,NULL,&aps->textureRect);
-        if(cpl_render_ascii(aps->render,&aps->font_top,"3.14159",200,200)){
+        if(cpl_render_ascii(aps->render,&aps->font_top,"3.14159",100,300)){
             SDL_Log("error:%s",SDL_GetError());
             return -1;
         }
