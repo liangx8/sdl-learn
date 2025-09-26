@@ -5,7 +5,7 @@ int updateBackground(struct APPSTATE *aps)
 {
     Uint8 num=0;
     while(aps->runing){
-        SDL_Delay(20);
+        SDL_Delay(100);
         num++;
         //SDL_LockMutex(aps->mutex);
         aps->gs->bgcolor=0xff+(num << 8) + ((0xff - num) << 16) + ((num + 0x80)<<24);
