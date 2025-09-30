@@ -1,12 +1,14 @@
 // https://examples.libsdl.org/SDL3/renderer/01-clear/
 
-
+#include <locale.h>
+#include <wchar.h>
 #include <stdio.h>
 #include <malloc.h>
 #include <unistd.h>
-#include "appstate.h"
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_main.h>
+#include "appstate.h"
+#include "abc_runstate.h"
 
 #define BG_BORDER_R 0x23
 #define BG_BORDER_G 0xbf
@@ -76,70 +78,94 @@ int pt(char *pixels,int h,int pitch,void *param)
     return 0;
 }
 const char *const fontname[];
+const char *const monofont[];
 int appevent(struct APPSTATE *,SDL_Event *);
 int app_run(struct APPSTATE *,Uint32);
 int updateBackground(void*);
 struct GAMESTATE *newGameState(int row,int col);
 
+#define HAN_CHAR 1
 #define BOARDER_WIDTH 25
-int initAppState(struct APPSTATE *ptr)
+int initAppState(struct APPSTATE *ptr,RUNSTATE *rs)
 {
     ptr->colors[0]=0xff;
     for(int ix=1;ix<256;ix++){
         ptr->colors[ix]=rand() | 0xff000000;
     }
-    if(SDL_GetCurrentDisplayMode(0,&ptr->dm)){
-        SDL_Log("%s",SDL_GetError());
-        return -1;
-    }
+    const int wi=rs->dm.w-400;
+    const int hi=rs->dm.h-200;
     ptr->gs=newGameState(40,20);
-    const int wi=ptr->dm.w-400;
-    const int hi=ptr->dm.h-200;
-    if(SDL_CreateWindowAndRenderer(wi,hi,0,&ptr->win,&ptr->render)){
-        SDL_Log("create window error %s",SDL_GetError());
-        return -1;
-    }
     ptr->textureRect.x=BOARDER_WIDTH;
     ptr->textureRect.y=BOARDER_WIDTH;
     ptr->textureRect.w=wi-BOARDER_WIDTH * 2;
     ptr->textureRect.h=hi-BOARDER_WIDTH * 2;
-    SDL_Texture *texture=cpl_create_texture_paint_pixels(ptr->render,ptr->textureRect.w,ptr->textureRect.h,pt,NULL);
+    SDL_Texture *texture=cpl_create_texture_paint_pixels(rs->ren,ptr->textureRect.w,ptr->textureRect.h,pt,NULL);
     if(texture==NULL){
-        SDL_DestroyRenderer(ptr->render);
-        SDL_DestroyWindow(ptr->win);
         SDL_Log("texture error (%s)",SDL_GetError());
         return -1;
     }
     ptr->texture=texture;
-    //cpl_create_texture_ascii_ucs2(ptr->render,fontname[0],red,30,&ptr->font_top);
-    if(cpl_create_texture_ascii(ptr->render,fontname[0],red,30,&ptr->font_top)){
-        SDL_DestroyRenderer(ptr->render);
-        SDL_DestroyWindow(ptr->win);
-        SDL_DestroyTexture(ptr->texture);
+#ifdef HAN_CHAR
+    if(cpl_create_texture_ascii_ucs2(rs->ren,fontname[0],red,19,&ptr->font_top)){
+#else
+    if(cpl_create_texture_ascii(ptr->render,monofont[0],red,13,&ptr->font_top)){
+#endif
         SDL_Log("texture error (%s)",SDL_GetError());
         return -1;
     }
-    ptr->cpunum=SDL_GetCPUCount();
-    SDL_Log("window size(h:%d,w:%d) CPU cores: \033[0;37;42m%d\033[0m\n",ptr->dm.h,ptr->dm.w,ptr->cpunum);
-    ptr->runing=1;
-    SDL_SetWindowTitle(ptr->win,"加油努力");
     ptr->mutex=SDL_CreateMutex();
+    ptr->rs=rs;
+    return 0;
+}
+int initRunState(RUNSTATE *rs){
+    if(SDL_GetCurrentDisplayMode(0,&rs->dm)){
+        SDL_Log("%s",SDL_GetError());
+        return -1;
+    }
+    const int wi=rs->dm.w-400;
+    const int hi=rs->dm.h-200;
+    if(SDL_CreateWindowAndRenderer(wi,hi,0,&rs->win,&rs->ren)){
+        SDL_Log("create window error %s",SDL_GetError());
+        return -1;
+    }
+    rs->cpunum=SDL_GetCPUCount();
+    SDL_Log("window size(h:%d,w:%d) CPU cores: \033[0;37;42m%d\033[0m\n",rs->dm.h,rs->dm.w,rs->cpunum);
+    rs->runing=1;
+    SDL_SetWindowTitle(rs->win,"加油努力");
+    rs->screenUpdate=1;
     return 0;
 }
 void releaseAppState(struct APPSTATE *ptr)
 {
-    SDL_DestroyRenderer(ptr->render);
-    SDL_DestroyWindow(ptr->win);
     SDL_DestroyTexture(ptr->texture);
     SDL_DestroyTexture(ptr->font_top.texture);
     SDL_DestroyMutex(ptr->mutex);
     free(ptr->gs);
 }
+
+/*
+typedef struct SDL_KeyboardEvent
+{
+    Uint32 type;        **< SDL_KEYDOWN or SDL_KEYUP *
+    Uint32 timestamp;   **< In milliseconds, populated using SDL_GetTicks() *
+    Uint32 windowID;    **< The window with keyboard focus, if any *
+    Uint8 state;        **< SDL_PRESSED or SDL_RELEASED *
+    Uint8 repeat;       **< Non-zero if this is a key repeat *
+    Uint8 padding2;
+    Uint8 padding3;
+    SDL_Keysym keysym;  **< The key that was pressed or released *
+} SDL_KeyboardEvent;
+*/
+
+int stage_menu_init(RUNSTATE *,STAGE *);
 const int fps=1000/24;
+
 
 int app(void)
 {
     struct APPSTATE aps;
+    RUNSTATE rs;
+    const Uint32 switchStageType = SDL_RegisterEvents(10);
     if(SDL_Init(SDL_INIT_VIDEO)){
         SDL_Log("initial error %s",SDL_GetError());
         return -1;
@@ -148,83 +174,108 @@ int app(void)
         SDL_Log("init ttf error (%s)",TTF_GetError());
         return -1;
     }
-    if(initAppState(&aps)){
+    if(initRunState(&rs)){
         return -1;
     }
+    if(initAppState(&aps,&rs)){
+        return -1;
+    }
+
     Uint32 tick_prev=SDL_GetTicks();
     SDL_Thread *x= SDL_CreateThread(updateBackground,"background",&aps);
-    int cnt=0;
-    while(aps.runing){
+    STAGE menu;
+    STAGE *current=&menu;
+    MAP keymap;
+    keymap=map_new(64);
+    stage_menu_init(&rs,&menu);
+    menu.payload=&aps;
+    menu.action->attach(&rs,keymap,menu.payload);
+    
+    while(rs.runing){
         SDL_Event ev;
         while(SDL_PollEvent(&ev)){
             if(ev.type==SDL_QUIT){
-                aps.runing=0;
-            }
-            if(appevent(&aps,&ev)){
-                SDL_Log("some error %s",SDL_GetError());
+                rs.runing=0;
                 break;
+            }
+            if(ev.type == SDL_KEYUP){
+                int (*action)(void *);
+                if(map_get(keymap,ev.key.keysym.sym,(void **)&action)){
+                    break;
+                }
+                action(current->payload);
+            }
+            if(ev.type == switchStageType){
+                STAGE *next=(STAGE *)ev.user.data1;
+                current->action->dettech(&rs,current->payload);
+                next->action->attach(&rs,keymap,next->payload);
+                current=next;
             }
         }
         Uint32 tick_now=SDL_GetTicks();
         Uint32 peri=tick_now-tick_prev;
+
+        if(current->action->run(&rs,current->payload)){
+            SDL_Log("some error %s",SDL_GetError());
+            break;
+        }
         if(peri > fps){
             tick_prev=tick_now;
-            if(app_run(&aps,tick_now)){
-                SDL_Log("some error %s",SDL_GetError());
-                break;
+            if(rs.screenUpdate){
+                rs.screenUpdate=0;
+                wprintf(L"renderer check point\n");
+                SDL_RenderPresent(rs.ren);
             }
-            if(aps.screenOut){
-                aps.screenOut=0;
-                SDL_RenderPresent(aps.render);
-            }
-            cnt++;
         }
     }
     SDL_WaitThread(x,NULL);
     releaseAppState(&aps);
     TTF_Quit();
     SDL_Quit();
+    map_free(keymap);
     return 0;
 }
 int main(int argc,char **argv)
 {
     int opt;
+    setlocale(LC_ALL,"");
     while((opt=getopt(argc,argv,"t:"))!=-1){
         switch(opt){
         case 't':
         //test_pcf("/usr/share/fonts/wenquanyi/wenquanyi_13px.pcf");
         return 0;
         case '?':
-        printf("wrong arguments\n");
+        wprintf(L"wrong arguments\n");
         return 0;
         }
     }
     return app();
 }
 
-
+const char *const monofont[]={
+    "/usr/share/fonts/gnu-free/FreeMono.otf",
+    "/usr/share/fonts/SpaceMono-Regular.ttf",
+    "/usr/share/fonts/SpaceMono-Bold.ttf",
+    "/usr/share/fonts/SpaceMono-BoldItalic.ttf",
+    "/usr/share/fonts/SpaceMono-Italic.ttf",
+    "/usr/share/fonts/gnu-free/FreeMonoBold.otf",
+    "/usr/share/fonts/gnu-free/FreeMonoBoldOblique.otf",
+    "/usr/share/fonts/gnu-free/FreeMonoOblique.otf"
+};
 
 const char *const fontname[]={
-    "/usr/share/fonts/gnu-free/FreeMonoOblique.otf",
-    "/usr/share/fonts/SpaceMono-Regular.ttf",
+    "/usr/share/fonts/德彪钢笔行书字库(3月9日更新).ttf",
+    "/usr/share/fonts/落落-卿本佳人.ttf",
+    "/usr/share/fonts/汉堡包手机字体.ttf",
+    "/usr/share/imlib2/data/fonts/notepad.ttf",
+    "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/noto-cjk/NotoSansCJK-Light.ttc",
     "/usr/share/fonts/noto-cjk/NotoSerifCJK-ExtraLight.ttc",
-"/usr/share/fonts/落落-卿本佳人.ttf",
-"/usr/share/fonts/汉堡包手机字体.ttf",
-"/usr/share/fonts/德彪钢笔行书字库(3月9日更新).ttf",
-"/usr/share/fonts/gnu-free/FreeMono.otf",
-"/usr/share/fonts/SpaceMono-Bold.ttf",
-"/usr/share/fonts/SpaceMono-BoldItalic.ttf",
-"/usr/share/fonts/SpaceMono-Italic.ttf",
-"/usr/share/imlib2/data/fonts/notepad.ttf",
 "/usr/share/fonts/noto/NotoColorEmoji.ttf",
-"/usr/share/fonts/gnu-free/FreeMonoBold.otf",
-"/usr/share/fonts/gnu-free/FreeMonoBoldOblique.otf",
 "/usr/share/feh/fonts/yudit.ttf",
 "/usr/share/ppsspp/assets/Roboto-Condensed.ttf",
 "/usr/share/vlc/skins2/fonts/FreeSansBold.ttf",
 "/usr/share/vlc/skins2/fonts/FreeSans.ttf",
-"/usr/share/fonts/noto-cjk/NotoSansCJK-Light.ttc",
-"/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
 "/usr/share/fonts/noto-cjk/NotoSerifCJK-Bold.ttc",
 "/usr/share/fonts/noto-cjk/NotoSansCJK-Bold.ttc",
 "/usr/share/fonts/noto-cjk/NotoSerifCJK-Regular.ttc",

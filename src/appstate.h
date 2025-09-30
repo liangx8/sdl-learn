@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL2/SDL.h>
 #include "cpl.h"
+#include "stage.h"
 struct GAMESTATE{
     Uint32 bgcolor;
     Uint8  nextColorIdx;   // 下一个颜色
@@ -12,18 +13,12 @@ struct GAMESTATE{
     Uint8  ground[0];
 };
 struct APPSTATE{
-    SDL_Window       *win;
-    SDL_Renderer     *render;
     SDL_Texture      *texture;
     SDL_mutex        *mutex;
+    SDL_cond         *cond;
     struct GAMESTATE *gs;
-    SDL_DisplayMode   dm;
     SDL_Rect          textureRect;
     struct TEXTURE_ASCII font_top;
-    Uint64            num;
     Uint32            colors[256];
-    int               cpunum;
-    // 数据已经有改变。需要更新到屏幕
-    int             screenOut;
-    int             runing;
+    RUNSTATE          *rs;
 };
