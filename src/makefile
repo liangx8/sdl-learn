@@ -1,4 +1,5 @@
 .PHONY: clean
+CC=gcc
 RM=rm -rf
 CFLAGS=-Wall
 TARGET=sdl

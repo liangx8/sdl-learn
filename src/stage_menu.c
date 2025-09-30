@@ -58,7 +58,7 @@ int menu_start(RUNSTATE *rs,MAP map,void *obj)
     dst.y=400;
     SDL_RenderCopy(rs->ren,aps->font_top.texture,&src,&dst);
 
-    dst.x=(rs->dm.w- (4 * ms.fontw)) /2;
+    dst.x=(rs->dm.w-200- (4 * ms.fontw)) /2;
     wprintf(L"screen w:%d most left: %d\n",rs->dm.w,dst.x);
     dst.h=ms.fonth;
     for(int ix=0;ix<4;ix++){

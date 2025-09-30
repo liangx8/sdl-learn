@@ -61,7 +61,7 @@ int cpl_create_texture_ascii_ucs2(SDL_Renderer *ren,const char *fontname,SDL_Col
     int w;
     SDL_QueryTexture(tx,NULL,NULL,&w,&tasc->h);
     tasc->w=w/total;
-    SDL_Log("font:%s, size(width:%d,height:%d)",fontname,tasc->w,tasc->h);
+    SDL_Log("宽英文字体:%s, size(width:%d,height:%d)",fontname,tasc->w,tasc->h);
     return 0;
 }
 int cpl_create_texture_ascii(SDL_Renderer *ren,const char *fontname,SDL_Color color,int size,struct TEXTURE_ASCII *tasc)
@@ -92,7 +92,7 @@ int cpl_create_texture_ascii(SDL_Renderer *ren,const char *fontname,SDL_Color co
     int w;
     SDL_QueryTexture(tx,NULL,NULL,&w,&tasc->h);
     tasc->w=w/total;
-    SDL_Log("font:%s, size(width:%d,height:%d)",fontname,tasc->w,tasc->h);
+    SDL_Log("英文字体:%s, size(width:%d,height:%d)",fontname,tasc->w,tasc->h);
     return 0;
 }
 SDL_Texture *cpl_create_texture_text(SDL_Renderer *ren,const char *fontname,const char *str,SDL_Color color,int size)

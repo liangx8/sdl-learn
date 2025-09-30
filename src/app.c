@@ -77,8 +77,8 @@ int pt(char *pixels,int h,int pitch,void *param)
     }
     return 0;
 }
-const char *const fontname[];
-const char *const monofont[];
+extern const char *const fontname[];
+extern const char *const monofont[];
 int appevent(struct APPSTATE *,SDL_Event *);
 int app_run(struct APPSTATE *,Uint32);
 int updateBackground(void*);
@@ -92,8 +92,8 @@ int initAppState(struct APPSTATE *ptr,RUNSTATE *rs)
     for(int ix=1;ix<256;ix++){
         ptr->colors[ix]=rand() | 0xff000000;
     }
-    const int wi=rs->dm.w-400;
-    const int hi=rs->dm.h-200;
+    const int wi=rs->dm.w-200;
+    const int hi=rs->dm.h-100;
     ptr->gs=newGameState(40,20);
     ptr->textureRect.x=BOARDER_WIDTH;
     ptr->textureRect.y=BOARDER_WIDTH;
@@ -108,7 +108,7 @@ int initAppState(struct APPSTATE *ptr,RUNSTATE *rs)
 #ifdef HAN_CHAR
     if(cpl_create_texture_ascii_ucs2(rs->ren,fontname[0],red,19,&ptr->font_top)){
 #else
-    if(cpl_create_texture_ascii(ptr->render,monofont[0],red,13,&ptr->font_top)){
+    if(cpl_create_texture_ascii(rs->ren,monofont[0],red,13,&ptr->font_top)){
 #endif
         SDL_Log("texture error (%s)",SDL_GetError());
         return -1;
@@ -122,8 +122,8 @@ int initRunState(RUNSTATE *rs){
         SDL_Log("%s",SDL_GetError());
         return -1;
     }
-    const int wi=rs->dm.w-400;
-    const int hi=rs->dm.h-200;
+    const int wi=rs->dm.w-200;
+    const int hi=rs->dm.h-100;
     if(SDL_CreateWindowAndRenderer(wi,hi,0,&rs->win,&rs->ren)){
         SDL_Log("create window error %s",SDL_GetError());
         return -1;
@@ -251,43 +251,3 @@ int main(int argc,char **argv)
     }
     return app();
 }
-
-const char *const monofont[]={
-    "/usr/share/fonts/gnu-free/FreeMono.otf",
-    "/usr/share/fonts/SpaceMono-Regular.ttf",
-    "/usr/share/fonts/SpaceMono-Bold.ttf",
-    "/usr/share/fonts/SpaceMono-BoldItalic.ttf",
-    "/usr/share/fonts/SpaceMono-Italic.ttf",
-    "/usr/share/fonts/gnu-free/FreeMonoBold.otf",
-    "/usr/share/fonts/gnu-free/FreeMonoBoldOblique.otf",
-    "/usr/share/fonts/gnu-free/FreeMonoOblique.otf"
-};
-
-const char *const fontname[]={
-    "/usr/share/fonts/德彪钢笔行书字库(3月9日更新).ttf",
-    "/usr/share/fonts/落落-卿本佳人.ttf",
-    "/usr/share/fonts/汉堡包手机字体.ttf",
-    "/usr/share/imlib2/data/fonts/notepad.ttf",
-    "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
-    "/usr/share/fonts/noto-cjk/NotoSansCJK-Light.ttc",
-    "/usr/share/fonts/noto-cjk/NotoSerifCJK-ExtraLight.ttc",
-"/usr/share/fonts/noto/NotoColorEmoji.ttf",
-"/usr/share/feh/fonts/yudit.ttf",
-"/usr/share/ppsspp/assets/Roboto-Condensed.ttf",
-"/usr/share/vlc/skins2/fonts/FreeSansBold.ttf",
-"/usr/share/vlc/skins2/fonts/FreeSans.ttf",
-"/usr/share/fonts/noto-cjk/NotoSerifCJK-Bold.ttc",
-"/usr/share/fonts/noto-cjk/NotoSansCJK-Bold.ttc",
-"/usr/share/fonts/noto-cjk/NotoSerifCJK-Regular.ttc",
-"/usr/share/fonts/noto-cjk/NotoSerifCJK-Black.ttc",
-"/usr/share/fonts/noto-cjk/NotoSansCJK-DemiLight.ttc",
-"/usr/share/fonts/noto-cjk/NotoSansCJK-Thin.ttc",
-"/usr/share/fonts/noto-cjk/NotoSerifCJK-Light.ttc",
-"/usr/share/fonts/noto-cjk/NotoSerifCJK-Medium.ttc",
-"/usr/share/fonts/noto-cjk/NotoSerifCJK-SemiBold.ttc",
-"/usr/share/fonts/noto-cjk/NotoSansCJK-Medium.ttc",
-"/usr/share/fonts/noto-cjk/NotoSansCJK-Black.ttc",
-"/usr/share/imlib2/data/fonts/cinema.ttf",
-"/usr/share/fonts/cantarell/Cantarell-VF.otf",
-"/usr/share/imlib2/data/fonts/morpheus.ttf"
-};
