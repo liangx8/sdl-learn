@@ -1,6 +1,6 @@
 #pragma once
 #include "map.h"
-#include "action.h"
+#include "abc_action.h"
 
 typedef struct {
     int (*attach)(RUNSTATE *,MAP,void *);

@@ -45,8 +45,7 @@ int cpl_create_texture_ascii_ucs2(SDL_Renderer *ren,const char *fontname,SDL_Col
         chs[ix]=0xff01+ix;
     }
     chs[total]='\0';
-    SDL_Color bg={0,0,0,0};
-    SDL_Surface *surf=TTF_RenderUNICODE(font,&chs[0],color,bg);
+    SDL_Surface *surf=TTF_RenderUNICODE_Solid(font,&chs[0],color);
     TTF_CloseFont(font);
     if(surf==NULL){
         return -1;

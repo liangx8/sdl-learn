@@ -44,8 +44,8 @@ def createFinder(rootpath,func):
                         break
                 if bad:
                     continue
-                fullname="{}/{}".format(root,f)
-                if cp.match(fullname):
+                if f.endswith(cp):
+                    fullname="{}/{}".format(root,f)
                     func(fullname)
     return find
 class font:
@@ -53,39 +53,39 @@ class font:
         self.__cnt=0
         self.__mono=[]
         self.__regular=[]
+        self.__cjk=[]
         self.__re=re.compile("Mono")
+        self.__recjk=re.compile("CJK-")
                         
     def run(self,x):
         self.__cnt=self.__cnt + 1
         if(self.__re.search(x)):
             self.__mono.append(x)
-        else:
-            self.__regular.append(x)
+            return
+        if(self.__recjk.search(x)):
+            self.__cjk.append(x)
+            return
+        self.__regular.append(x)
     def gen(self):
         with open("src/listfont.c","w+") as lf:
-            print("const char *const monofont[]={",file=lf)
-            start=True
-            for one in self.__mono:
-                if start:
-                    start=False
-                else:
-                    print(",",end="",file=lf)
-                print('"{}"'.format(one),file=lf)
-            print('};',file=lf)
-            print("const char *const fontname[]={",file=lf)
-            start=True
-            for one in self.__regular:
-                if start:
-                    start=False
-                else:
-                    print(",",end="",file=lf)
-                print('"{}"'.format(one),file=lf)
-            print('};',file=lf)
+            putx("monofont",lf,self.__mono)
+            putx("cjkfont",lf,self.__cjk)
+            putx("fontname",lf,self.__regular)
         print(len(self.__mono))
         print(len(self.__regular))
+        print(len(self.__cjk))
+def putx(name,out,lists):
+    #print("const char *const {}[]={".format(name),file=out)
+    print("\nconst char *const {}[]=".format(name),file=out,end="{\n")
+    cnt=len(lists)
+    for seq in range(cnt):
+        endWith=",\n"
+        if seq == cnt-1:
+            endWith="};\n"
+        print('"{}"'.format(lists[seq]),file=out,end=endWith)
+
 if __name__=="__main__":
     aa=font()
-    pt=re.compile(".*(ttc$|otf$|ttf$)")
     cf=createFinder("/usr/share/fonts",aa.run)
-    cf(pt)
+    cf((".ttc",".otf",".ttf"))
     aa.gen()

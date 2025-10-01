@@ -1,4 +1,3 @@
-// https://examples.libsdl.org/SDL3/renderer/01-clear/
 
 #include <locale.h>
 #include <wchar.h>
@@ -6,9 +5,8 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <SDL2/SDL_ttf.h>
-#include <SDL2/SDL_main.h>
-#include "appstate.h"
-#include "abc_runstate.h"
+#include "appres.h"
+#include "abc_stage.h"
 
 #define BG_BORDER_R 0x23
 #define BG_BORDER_G 0xbf
@@ -79,14 +77,11 @@ int pt(char *pixels,int h,int pitch,void *param)
 }
 extern const char *const fontname[];
 extern const char *const monofont[];
-int appevent(struct APPSTATE *,SDL_Event *);
-int app_run(struct APPSTATE *,Uint32);
-int updateBackground(void*);
-struct GAMESTATE *newGameState(int row,int col);
+extern const char *const cjkfont[];
 
 #define HAN_CHAR 1
 #define BOARDER_WIDTH 25
-int initAppState(struct APPSTATE *ptr,RUNSTATE *rs)
+int initAppState(APPRES *ptr,RUNSTATE *rs)
 {
     ptr->colors[0]=0xff;
     for(int ix=1;ix<256;ix++){
@@ -94,7 +89,6 @@ int initAppState(struct APPSTATE *ptr,RUNSTATE *rs)
     }
     const int wi=rs->dm.w-200;
     const int hi=rs->dm.h-100;
-    ptr->gs=newGameState(40,20);
     ptr->textureRect.x=BOARDER_WIDTH;
     ptr->textureRect.y=BOARDER_WIDTH;
     ptr->textureRect.w=wi-BOARDER_WIDTH * 2;
@@ -106,15 +100,14 @@ int initAppState(struct APPSTATE *ptr,RUNSTATE *rs)
     }
     ptr->texture=texture;
 #ifdef HAN_CHAR
-    if(cpl_create_texture_ascii_ucs2(rs->ren,fontname[0],red,19,&ptr->font_top)){
+    if(cpl_create_texture_ascii_ucs2(rs->ren,cjkfont[0],red,19,&ptr->font_top)){
 #else
-    if(cpl_create_texture_ascii(rs->ren,monofont[0],red,13,&ptr->font_top)){
+    if(cpl_create_texture_ascii(rs->ren,monofont[0],red,19,&ptr->font_top)){
 #endif
         SDL_Log("texture error (%s)",SDL_GetError());
         return -1;
     }
     ptr->mutex=SDL_CreateMutex();
-    ptr->rs=rs;
     return 0;
 }
 int initRunState(RUNSTATE *rs){
@@ -133,16 +126,19 @@ int initRunState(RUNSTATE *rs){
     rs->runing=1;
     SDL_SetWindowTitle(rs->win,"加油努力");
     rs->screenUpdate=1;
+    rs->switchStageType = SDL_RegisterEvents(10);
     return 0;
 }
-void releaseAppState(struct APPSTATE *ptr)
+void releaseAppState(APPRES *ptr)
 {
     SDL_DestroyTexture(ptr->texture);
     SDL_DestroyTexture(ptr->font_top.texture);
     SDL_DestroyMutex(ptr->mutex);
-    free(ptr->gs);
 }
-
+int updateBackground(void *x)
+{
+    return 0;
+}
 /*
 typedef struct SDL_KeyboardEvent
 {
@@ -163,9 +159,8 @@ const int fps=1000/24;
 
 int app(void)
 {
-    struct APPSTATE aps;
+    APPRES aps;
     RUNSTATE rs;
-    const Uint32 switchStageType = SDL_RegisterEvents(10);
     if(SDL_Init(SDL_INIT_VIDEO)){
         SDL_Log("initial error %s",SDL_GetError());
         return -1;
@@ -183,14 +178,12 @@ int app(void)
 
     Uint32 tick_prev=SDL_GetTicks();
     SDL_Thread *x= SDL_CreateThread(updateBackground,"background",&aps);
-    STAGE menu;
+    STAGE menu,game;
     STAGE *current=&menu;
     MAP keymap;
     keymap=map_new(64);
     stage_menu_init(&rs,&menu);
-    menu.payload=&aps;
     menu.action->attach(&rs,keymap,menu.payload);
-    
     while(rs.runing){
         SDL_Event ev;
         while(SDL_PollEvent(&ev)){
@@ -199,13 +192,13 @@ int app(void)
                 break;
             }
             if(ev.type == SDL_KEYUP){
-                int (*action)(void *);
+                action_func action;
                 if(map_get(keymap,ev.key.keysym.sym,(void **)&action)){
                     break;
                 }
-                action(current->payload);
+                action(&rs,current->payload);
             }
-            if(ev.type == switchStageType){
+            if(ev.type == rs.switchStageType){
                 STAGE *next=(STAGE *)ev.user.data1;
                 current->action->dettech(&rs,current->payload);
                 next->action->attach(&rs,keymap,next->payload);
