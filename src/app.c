@@ -80,7 +80,7 @@ extern const char *const monofont[];
 extern const char *const cjkfont[];
 
 #define HAN_CHAR 1
-#define BOARDER_WIDTH 25
+#define BOARDER_SIZE 5
 int initAppState(APPRES *ptr,RUNSTATE *rs)
 {
     ptr->colors[0]=0xff;
@@ -89,16 +89,16 @@ int initAppState(APPRES *ptr,RUNSTATE *rs)
     }
     const int wi=rs->dm.w-200;
     const int hi=rs->dm.h-100;
-    ptr->textureRect.x=BOARDER_WIDTH;
-    ptr->textureRect.y=BOARDER_WIDTH;
-    ptr->textureRect.w=wi-BOARDER_WIDTH * 2;
-    ptr->textureRect.h=hi-BOARDER_WIDTH * 2;
+    ptr->textureRect.x=BOARDER_SIZE;
+    ptr->textureRect.y=BOARDER_SIZE;
+    ptr->textureRect.w=wi-BOARDER_SIZE * 2;
+    ptr->textureRect.h=hi-BOARDER_SIZE * 2;
     SDL_Texture *texture=cpl_create_texture_paint_pixels(rs->ren,ptr->textureRect.w,ptr->textureRect.h,pt,NULL);
     if(texture==NULL){
         SDL_Log("texture error (%s)",SDL_GetError());
         return -1;
     }
-    ptr->texture=texture;
+    ptr->textureBg=texture;
 #ifdef HAN_CHAR
     if(cpl_create_texture_ascii_ucs2(rs->ren,cjkfont[0],red,19,&ptr->font_top)){
 #else
@@ -108,6 +108,7 @@ int initAppState(APPRES *ptr,RUNSTATE *rs)
         return -1;
     }
     ptr->mutex=SDL_CreateMutex();
+    rs->payload=ptr;
     return 0;
 }
 int initRunState(RUNSTATE *rs){
@@ -131,7 +132,7 @@ int initRunState(RUNSTATE *rs){
 }
 void releaseAppState(APPRES *ptr)
 {
-    SDL_DestroyTexture(ptr->texture);
+    SDL_DestroyTexture(ptr->textureBg);
     SDL_DestroyTexture(ptr->font_top.texture);
     SDL_DestroyMutex(ptr->mutex);
 }
@@ -183,7 +184,9 @@ int app(void)
     MAP keymap;
     keymap=map_new(64);
     stage_menu_init(&rs,&menu);
-    menu.action->attach(&rs,keymap,menu.payload);
+    aps.menu=&menu;
+    aps.game=&game;
+    menu.action->attach(keymap,NULL);
     while(rs.runing){
         SDL_Event ev;
         while(SDL_PollEvent(&ev)){
@@ -196,19 +199,22 @@ int app(void)
                 if(map_get(keymap,ev.key.keysym.sym,(void **)&action)){
                     break;
                 }
-                action(&rs,current->payload);
+                action(current->payload);
             }
             if(ev.type == rs.switchStageType){
                 STAGE *next=(STAGE *)ev.user.data1;
-                current->action->dettech(&rs,current->payload);
-                next->action->attach(&rs,keymap,next->payload);
+                current->action->dettech(current->payload);
+                next->action->attach(keymap,ev.user.data2);
                 current=next;
+            }
+            if(ev.type==SDL_WINDOWEVENT){
+                SDL_Log("window event occur!%d",ev.window.timestamp);
             }
         }
         Uint32 tick_now=SDL_GetTicks();
         Uint32 peri=tick_now-tick_prev;
 
-        if(current->action->run(&rs,current->payload)){
+        if(current->action->run(current->payload)){
             SDL_Log("some error %s",SDL_GetError());
             break;
         }

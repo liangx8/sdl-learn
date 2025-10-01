@@ -1,3 +1,3 @@
 #pragma once
 #include "abc_runstate.h"
-typedef int (*action_func)(RUNSTATE *,void *);
+typedef int (*action_func)(void *);

@@ -2,11 +2,13 @@
 #include "cpl.h"
 #include "map.h"
 #include "abc_runstate.h"
+#include "appres.h"
 #define MENU_FONT_WIDTH 48
 const char *menustr="开始游戏选项按键定义玩腻了";
 const int rng[]=    {       4, 6,    10,  13};
 struct MENU_STATUS
 {
+    RUNSTATE *rs;
     SDL_Texture *menustr;
     SDL_Rect *this;
     SDL_Rect *prev;
@@ -18,13 +20,50 @@ struct MENU_STATUS
 } ms;
 
 
-int keyup(RUNSTATE *rs,void * _)
+int keyup(void * pl)
 {
     wprintf(L"向上\n");
     return 0;
 }
-int menu_start(RUNSTATE *rs,MAP map,void *obj)
+int menu_return(void *pl)
 {
+    wprintf(L"回车\n");
+#if 0
+    SDL_Event ev;
+    ev.type=ms.rs->switchStageType;
+    APPRES *aps=(APPRES *)ms.rs->payload;
+    ev.user.data1=aps->game;
+    SDL_PushEvent(&ev);
+#endif
+    return 0;
+}
+int menu_esc(void *pl)
+{
+    SDL_Event ev;
+    ev.type=SDL_QUIT;
+    SDL_PushEvent(&ev);
+}
+#define MENU_ROW_GAP 6
+#define MENU_TOP_MARGIN 50
+int menu_focus(void)
+{
+    SDL_Rect dst;
+    dst.w=ms.fontw*4+100;
+    dst.h=ms.fonth+MENU_ROW_GAP;
+    dst.y=MENU_TOP_MARGIN+ms.selected * dst.h - (MENU_ROW_GAP/2);
+    dst.x=(ms.rs->dm.w-200- (4 * ms.fontw)) /2-50;
+    SDL_SetRenderDrawColor(ms.rs->ren,23,78,129,255);
+
+    SDL_RenderDrawRect(ms.rs->ren,&dst);
+}
+int menu_start(MAP map,void *obj)
+{
+    RUNSTATE *rs=ms.rs;
+    APPRES *aps=(APPRES*)rs->payload;
+    if(obj==NULL){
+        //画背景
+        SDL_RenderCopy(rs->ren,aps->textureBg,NULL,&aps->textureRect);
+    }
     map_clear(map);
     if(map_set(map,SDLK_UP,keyup)){
         return -1;
@@ -32,23 +71,30 @@ int menu_start(RUNSTATE *rs,MAP map,void *obj)
     if(map_set(map,SDLK_w,keyup)){
         return -1;
     }
+    if(map_set(map,SDLK_RETURN,menu_return)){
+        return -1;
+    }
+    if(map_set(map,SDLK_ESCAPE,menu_esc)){
+        return -1;
+    }
     SDL_Rect dst;
     dst.x=(rs->dm.w-200- (4 * ms.fontw)) /2;
     wprintf(L"screen w:%d most left: %d\n",rs->dm.w,dst.x);
     dst.h=ms.fonth;
     for(int ix=0;ix<4;ix++){
-        dst.y=ix * (ms.fonth + 5)+50;
+        dst.y=ix * (ms.fonth + MENU_ROW_GAP)+MENU_TOP_MARGIN;
         dst.w=ms.rects[ix].w;
         SDL_RenderCopy(rs->ren,ms.menustr,&ms.rects[ix],&dst);
     }
-
+    ms.selected=0;
+    menu_focus();
     return 0;
 }
-int menu_run(RUNSTATE *rs,void *pl)
+int menu_run(void *pl)
 {
     return 0;
 }
-int menu_end(RUNSTATE *rs,void *pl)
+int menu_end(void *pl)
 {
     return 0;
 }
@@ -62,7 +108,7 @@ extern const char *const cjkfont[];
 int stage_menu_init(RUNSTATE *rs,STAGE *ptr)
 {
     ptr->action=&const_stage_menu;
-    SDL_Color fg={0xf0,0xa8,0xe0,0xff};
+    SDL_Color fg={0xf0,0xa8,0x0e,0xff};
     ms.menustr=cpl_create_texture_text(rs->ren,cjkfont[1],menustr,fg,MENU_FONT_WIDTH);
     if(ms.menustr==NULL){
         return -1;
@@ -85,5 +131,7 @@ int stage_menu_init(RUNSTATE *rs,STAGE *ptr)
     }
     ms.this=NULL;
     ms.prev=NULL;
+    ms.rs=rs;
+    ptr->payload=rs;
     return 0;
 }
