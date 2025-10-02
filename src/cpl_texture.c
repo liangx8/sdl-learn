@@ -2,6 +2,26 @@
 #include <SDL2/SDL_ttf.h>
 
 
+int rect_texture_callback(char *pixels,int h,int pitch,void *param)
+{
+    SDL_Color *color=(SDL_Color*)param;
+    for(int iy=0;iy<h;iy++){
+        // if(iy & 1) continue;
+        for(int ix=0;ix<pitch;ix=ix+4)
+        {
+            char *ptr=pixels+iy*pitch+ix;
+            *ptr=color->a;
+            ptr++;
+            *ptr=color->r;
+            ptr++;
+            *ptr=color->g;
+            ptr++;
+            *ptr=color->b;
+        }
+    }
+    return 0;
+}
+
 /**
  * @brief 储存0x21到0x7e到字符
  */
@@ -10,10 +30,11 @@ struct TEXTURE_ASCII{
     int w; // 每个字摸的宽度
     int h; // 高度
 };
-
 SDL_Texture* cpl_create_texture_paint_pixels(SDL_Renderer *ren,int w,int h,typeof(int (*)(char *,int,int,void *)) pt, void *param)
 {
+    // 回调函数中的pitch是y轴的字节数，因为每像素要用rgba来描述，所以要４字节
     SDL_Texture *ttr=SDL_CreateTexture(ren,SDL_PIXELFORMAT_RGBA8888,SDL_TEXTUREACCESS_STREAMING,w,h);
+    SDL_Log("创建Texture(width:%d,height:%d)",w,h);
     char *pixels;
     int pitch;
     if(ttr==NULL){
@@ -100,7 +121,14 @@ SDL_Texture *cpl_create_texture_text(SDL_Renderer *ren,const char *fontname,cons
     if(font==NULL){
         return NULL;
     }
-    SDL_Surface *surf=TTF_RenderUTF8_Solid(font,str,color);
+#if 1
+    SDL_Surface *surf;
+    //surf=TTF_RenderUTF8_Solid(font,str,color);
+    surf=TTF_RenderUTF8_Blended(font,str,color);
+#else
+    SDL_Color bg={0xea,0xea,0xea,127};
+    SDL_Surface *surf=TTF_RenderUTF8(font,str,color,bg);
+#endif
     TTF_CloseFont(font);
     if(surf==NULL){
         return NULL;

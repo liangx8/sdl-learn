@@ -14,3 +14,4 @@ SDL_Texture* cpl_create_texture_paint_pixels(SDL_Renderer*,int,int,typeof(int (*
 
 int cpl_render_ascii(SDL_Renderer *ren,struct TEXTURE_ASCII *tasc,const char *text,int x,int y);
 SDL_Texture *cpl_create_texture_text(SDL_Renderer *ren,const char *fontname,const char *str,SDL_Color color,int size);
+int rect_texture_callback(char *,int,int,void *);

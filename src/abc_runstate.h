@@ -7,6 +7,5 @@ typedef struct {
     SDL_DisplayMode  dm;
     Uint32           switchStageType;
     int              cpunum;
-    int              screenUpdate;
     int              runing;
 } RUNSTATE;

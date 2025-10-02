@@ -3,3 +3,13 @@ https://www.willusher.io/sdl2%20tutorials/2013/08/17/lesson-1-hello-world
 
 SDL Documentation
 http://wiki.libsdl.org/moin.fcg/FrontPage
+
+* TTF_RenderUTF8_Solid构建Surface的构建不带背景的对象，在这基础上构建出来的Texture也是
+    相同的特征
+
+* TTF_RenderUTF8构建的Surface多了一个背景颜色的参数，因此构建出来的对象有背景色，而且alpha
+    值能设置透明度
+
+* SDL_SetTextureColorMod()设置Texture的颜色，改变背景色，并且把前景色变成缺省值{0,0,0,0}
+
+* SDL_WaitEvent()方法能降低cpu的占用，还未知有什么缺点

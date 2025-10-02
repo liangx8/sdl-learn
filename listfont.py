@@ -35,6 +35,7 @@ def createFinder(rootpath,func):
              ,re.compile("Saurashtra")
              )
     def find(cp):
+'''cp 文件名最后的字母的列表'''
         for root,dirs,files in os.walk(rootpath):
             for f in files:
                 bad=False

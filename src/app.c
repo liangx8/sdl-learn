@@ -22,9 +22,11 @@ SDL_Color red={0xff,0,0,0xff};
 
 int pt(char *pixels,int h,int pitch,void *param)
 {
+    
     SDL_Log("high:%d,pitch:%d\n",h,pitch);
     int col[]={0,h-1};
     for(int cx=0;cx<2;cx++){
+#if 0
         for(int ix=0;ix<pitch;ix++){
             char *ptr1=pixels+col[cx]*pitch+ix;
             switch(ix & 3){
@@ -38,6 +40,18 @@ int pt(char *pixels,int h,int pitch,void *param)
                     *ptr1=BG_BORDER_B; break;
             }
         }
+#else
+        for(int ix=0;ix<pitch;ix+=4){
+            char *ptr1=pixels+col[cx]*pitch+ix;
+            *ptr1=0xff;
+            ptr1++;
+            *ptr1=BG_BORDER_R;
+            ptr1++;
+            *ptr1=BG_BORDER_G;
+            ptr1++;
+            *ptr1=BG_BORDER_B;
+        }
+#endif
     }
     for(int rx=0;rx<2;rx++){
         int row[]={0,pitch-4};
@@ -107,7 +121,7 @@ int initAppState(APPRES *ptr,RUNSTATE *rs)
         SDL_Log("texture error (%s)",SDL_GetError());
         return -1;
     }
-    ptr->mutex=SDL_CreateMutex();
+    // ptr->mutex=SDL_CreateMutex();
     rs->payload=ptr;
     return 0;
 }
@@ -126,7 +140,6 @@ int initRunState(RUNSTATE *rs){
     SDL_Log("window size(h:%d,w:%d) CPU cores: \033[0;37;42m%d\033[0m\n",rs->dm.h,rs->dm.w,rs->cpunum);
     rs->runing=1;
     SDL_SetWindowTitle(rs->win,"加油努力");
-    rs->screenUpdate=1;
     rs->switchStageType = SDL_RegisterEvents(10);
     return 0;
 }
@@ -134,7 +147,7 @@ void releaseAppState(APPRES *ptr)
 {
     SDL_DestroyTexture(ptr->textureBg);
     SDL_DestroyTexture(ptr->font_top.texture);
-    SDL_DestroyMutex(ptr->mutex);
+//    SDL_DestroyMutex(ptr->mutex);
 }
 int updateBackground(void *x)
 {
@@ -157,7 +170,6 @@ typedef struct SDL_KeyboardEvent
 int stage_menu_init(RUNSTATE *,STAGE *);
 const int fps=1000/24;
 
-
 int app(void)
 {
     APPRES aps;
@@ -177,8 +189,6 @@ int app(void)
         return -1;
     }
 
-    Uint32 tick_prev=SDL_GetTicks();
-    SDL_Thread *x= SDL_CreateThread(updateBackground,"background",&aps);
     STAGE menu,game;
     STAGE *current=&menu;
     MAP keymap;
@@ -187,47 +197,41 @@ int app(void)
     aps.menu=&menu;
     aps.game=&game;
     menu.action->attach(keymap,NULL);
-    while(rs.runing){
-        SDL_Event ev;
-        while(SDL_PollEvent(&ev)){
-            if(ev.type==SDL_QUIT){
-                rs.runing=0;
-                break;
-            }
-            if(ev.type == SDL_KEYUP){
+    SDL_Event ev;
+    while(SDL_WaitEvent(&ev)){
+        switch(ev.type){
+            case SDL_QUIT:
+            rs.runing=0;
+            goto exit_loop;
+            case SDL_KEYUP:
+            {
+
                 action_func action;
                 if(map_get(keymap,ev.key.keysym.sym,(void **)&action)){
-                    break;
+                    continue;
                 }
                 action(current->payload);
             }
-            if(ev.type == rs.switchStageType){
+            break;
+            case SDL_WINDOWEVENT:
+            if(ev.window.event==SDL_WINDOWEVENT_EXPOSED){
+                SDL_RenderPresent(rs.ren);
+                //SDL_Log("window event occur!event:%d,type:%d,data1:%d,data2:%d",ev.window.event,ev.window.type,ev.window.data1,ev.window.data2);
+            }
+            break;
+            default:
+            if(ev.type==rs.switchStageType)
+            {
                 STAGE *next=(STAGE *)ev.user.data1;
                 current->action->dettech(current->payload);
                 next->action->attach(keymap,ev.user.data2);
                 current=next;
             }
-            if(ev.type==SDL_WINDOWEVENT){
-                SDL_Log("window event occur!%d",ev.window.timestamp);
-            }
-        }
-        Uint32 tick_now=SDL_GetTicks();
-        Uint32 peri=tick_now-tick_prev;
-
-        if(current->action->run(current->payload)){
-            SDL_Log("some error %s",SDL_GetError());
             break;
         }
-        if(peri > fps){
-            tick_prev=tick_now;
-            if(rs.screenUpdate){
-                rs.screenUpdate=0;
-                wprintf(L"renderer check point\n");
-                SDL_RenderPresent(rs.ren);
-            }
-        }
     }
-    SDL_WaitThread(x,NULL);
+    exit_loop:
+    //SDL_WaitThread(x,NULL);
     releaseAppState(&aps);
     TTF_Quit();
     SDL_Quit();

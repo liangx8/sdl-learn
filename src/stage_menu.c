@@ -10,6 +10,7 @@ struct MENU_STATUS
 {
     RUNSTATE *rs;
     SDL_Texture *menustr;
+    SDL_Texture *menuMask;
     SDL_Rect *this;
     SDL_Rect *prev;
     SDL_Rect rects[4];
@@ -19,15 +20,57 @@ struct MENU_STATUS
     int fonth;
 } ms;
 
+#define MENU_ROW_GAP 20
+#define MENU_TOP_MARGIN 50
+int menu_focus(void)
+{
+    APPRES *aps=(APPRES *)ms.rs->payload;
+    SDL_Rect dst;
+    SDL_QueryTexture(ms.menuMask,NULL,NULL,&dst.w,&dst.h);
 
+    dst.y=ms.selected * (ms.fonth + MENU_ROW_GAP) + MENU_TOP_MARGIN;
+    dst.x=(ms.rs->dm.w-200- (4 * ms.fontw)) /2;
+    SDL_RenderCopy(ms.rs->ren,ms.menuMask,NULL,&dst);
+    if(ms.selected != ms.prev_sel){
+        // 删除旧的mask
+        dst.y=ms.prev_sel * (ms.fonth + MENU_ROW_GAP)+MENU_TOP_MARGIN;
+        SDL_Rect src={dst.x-5,dst.y-5,dst.w,dst.h};
+        SDL_RenderCopy(ms.rs->ren,aps->textureBg,&src,&dst);
+        ms.prev_sel=ms.selected;
+    }
+    SDL_Event ev;
+    ev.type=SDL_WINDOWEVENT;
+    ev.window.event=SDL_WINDOWEVENT_EXPOSED;
+    SDL_PushEvent(&ev);
+    return 0;
+}
+int menu_down(void *_)
+{
+    if(ms.selected<3){
+        ms.selected++;
+    } else {
+        ms.selected=0;
+    }
+    return menu_focus();
+}
 int keyup(void * pl)
 {
     wprintf(L"向上\n");
-    return 0;
+    if(ms.selected){
+        ms.selected--;
+    } else {
+        ms.selected=3;
+    }
+    return menu_focus();
 }
 int menu_return(void *pl)
 {
     wprintf(L"回车\n");
+    if(ms.selected==3){
+        SDL_Event ev;
+        ev.type=SDL_QUIT;
+        SDL_PushEvent(&ev);
+    }
 #if 0
     SDL_Event ev;
     ev.type=ms.rs->switchStageType;
@@ -42,19 +85,7 @@ int menu_esc(void *pl)
     SDL_Event ev;
     ev.type=SDL_QUIT;
     SDL_PushEvent(&ev);
-}
-#define MENU_ROW_GAP 6
-#define MENU_TOP_MARGIN 50
-int menu_focus(void)
-{
-    SDL_Rect dst;
-    dst.w=ms.fontw*4+100;
-    dst.h=ms.fonth+MENU_ROW_GAP;
-    dst.y=MENU_TOP_MARGIN+ms.selected * dst.h - (MENU_ROW_GAP/2);
-    dst.x=(ms.rs->dm.w-200- (4 * ms.fontw)) /2-50;
-    SDL_SetRenderDrawColor(ms.rs->ren,23,78,129,255);
-
-    SDL_RenderDrawRect(ms.rs->ren,&dst);
+    return 0;
 }
 int menu_start(MAP map,void *obj)
 {
@@ -77,16 +108,32 @@ int menu_start(MAP map,void *obj)
     if(map_set(map,SDLK_ESCAPE,menu_esc)){
         return -1;
     }
+    if(map_set(map,SDLK_DOWN,menu_down)){
+        return -1;
+    }
     SDL_Rect dst;
     dst.x=(rs->dm.w-200- (4 * ms.fontw)) /2;
-    wprintf(L"screen w:%d most left: %d\n",rs->dm.w,dst.x);
+    wprintf(L"显示菜单 screen w:%d most left: %d\n",rs->dm.w,dst.x);
     dst.h=ms.fonth;
     for(int ix=0;ix<4;ix++){
         dst.y=ix * (ms.fonth + MENU_ROW_GAP)+MENU_TOP_MARGIN;
         dst.w=ms.rects[ix].w;
+#if 0
+        if(ix==0){
+            //这个方法只能改变背景色，而且还会把前景色搞没了
+            if(SDL_SetTextureColorMod(ms.menustr,0xff,0,0)){
+                SDL_Log("SetTextureColorMod() error1 with %s",SDL_GetError());
+            }
+        } else {
+            if(SDL_SetTextureColorMod(ms.menustr,0,0,0xff)){
+                SDL_Log("SetTextureColorMod() error2 with %s",SDL_GetError());
+            }
+        }
+#endif
         SDL_RenderCopy(rs->ren,ms.menustr,&ms.rects[ix],&dst);
     }
     ms.selected=0;
+    ms.prev_sel=0;
     menu_focus();
     return 0;
 }
@@ -108,8 +155,9 @@ extern const char *const cjkfont[];
 int stage_menu_init(RUNSTATE *rs,STAGE *ptr)
 {
     ptr->action=&const_stage_menu;
-    SDL_Color fg={0xf0,0xa8,0x0e,0xff};
-    ms.menustr=cpl_create_texture_text(rs->ren,cjkfont[1],menustr,fg,MENU_FONT_WIDTH);
+    //b00fb6
+    SDL_Color fg={0xb0,0x0f,0xb6,0xff};
+    ms.menustr=cpl_create_texture_text(rs->ren,cjkfont[2],menustr,fg,MENU_FONT_WIDTH);
     if(ms.menustr==NULL){
         return -1;
     }
@@ -119,8 +167,26 @@ int stage_menu_init(RUNSTATE *rs,STAGE *ptr)
     wprintf(L"menu texture width:%d,height:%d\n",ms.fontw,ms.fonth);
     if(ms.fontw!=MENU_FONT_WIDTH){
         SDL_Log("字体大小不匹配 expected %d,actual %d",MENU_FONT_WIDTH,ms.fontw);
-
+        
     }
+    //bd53f1
+    fg.a=80;
+    fg.r=23;
+    fg.g=23;
+    fg.b=230;
+    ms.menuMask=cpl_create_texture_paint_pixels(
+        rs->ren,
+        200,
+        ms.fonth,
+        rect_texture_callback,
+        &fg);
+    if(SDL_SetTextureBlendMode(ms.menuMask,SDL_BLENDMODE_BLEND)){
+        return -1;
+    }
+    if(SDL_SetTextureAlphaMod(ms.menuMask,127)){
+        return -1;
+    }
+    // SDL_SetTextureColorMod(ms.menuMask,0xf1,0x53,0xbd);
     int x=0;
     for(int ix=0;ix<4;ix++){
         ms.rects[ix].x=x;
