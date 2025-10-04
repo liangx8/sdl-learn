@@ -15,34 +15,21 @@
 #define BG_R 0xfa
 #define BG_G 0xeb
 #define BG_B 0xd1
-#define GRID_SIZE 80
+#define GRID_SIZE 40
 
 
 SDL_Color red={0xff,0,0,0xff};
-
+#if 0
 int pt(char *pixels,int h,int pitch,void *param)
 {
     
     SDL_Log("high:%d,pitch:%d\n",h,pitch);
+    const int cols=pitch/4;
     int col[]={0,h-1};
+    // ２水平边
     for(int cx=0;cx<2;cx++){
-#if 0
-        for(int ix=0;ix<pitch;ix++){
-            char *ptr1=pixels+col[cx]*pitch+ix;
-            switch(ix & 3){
-                case 0: // alpha
-                    *ptr1=0xff; break;
-                case 1: // red
-                    *ptr1=BG_BORDER_R; break;
-                case 2: // green
-                    *ptr1=BG_BORDER_G; break;
-                case 3: // blue
-                    *ptr1=BG_BORDER_B; break;
-            }
-        }
-#else
-        for(int ix=0;ix<pitch;ix+=4){
-            char *ptr1=pixels+col[cx]*pitch+ix;
+        for(int ix=0;ix<cols;ix++){
+            char *ptr1=pixels+col[cx]*pitch+ix*4;
             *ptr1=0xff;
             ptr1++;
             *ptr1=BG_BORDER_R;
@@ -51,8 +38,8 @@ int pt(char *pixels,int h,int pitch,void *param)
             ptr1++;
             *ptr1=BG_BORDER_B;
         }
-#endif
     }
+    // 画２垂直边
     for(int rx=0;rx<2;rx++){
         int row[]={0,pitch-4};
         for(int iy=0;iy<h;iy++){
@@ -65,49 +52,50 @@ int pt(char *pixels,int h,int pitch,void *param)
     }
     for(int iy=1;iy<h-1;iy++){
         char *row=pixels+iy*pitch;
-        for(int ix=4;ix<pitch-4;ix++){
-            char *ptr=row+ix;
+        for(int ix=0;ix<cols-1;ix++){
+            char *ptr=row+ix*4;
             char lc=0;
             if(iy % GRID_SIZE ==0){
                 lc=20;
             }
-            int tmp=ix /4;
-            if(tmp % GRID_SIZE ==0){
+            if(ix % GRID_SIZE ==0){
                 lc=20;
             }
-            switch(ix & 3){
-                case 0: // alpha
-                    *ptr=0xff; break;
-                case 1: // red
-                    *ptr=BG_R - lc; break;
-                case 2: // green
-                    *ptr=BG_G - lc; break;
-                case 3: // blue
-                    *ptr=BG_B - lc; break;
-            }
+            *ptr= 0xff;
+            *(ptr+1)=BG_R - lc;
+            *(ptr+2)=BG_G - lc;
+            *(ptr+3)=BG_B - lc;
         }
     }
     return 0;
 }
+#endif
 extern const char *const fontname[];
 extern const char *const monofont[];
 extern const char *const cjkfont[];
 
-#define HAN_CHAR 1
+//#define HAN_CHAR 1
 #define BOARDER_SIZE 5
 int initAppState(APPRES *ptr,RUNSTATE *rs)
 {
-    ptr->colors[0]=0xff;
     for(int ix=1;ix<256;ix++){
         ptr->colors[ix]=rand() | 0xff000000;
     }
-    const int wi=rs->dm.w-200;
-    const int hi=rs->dm.h-100;
+    const int wi=rs->dm.w-MAIN_SCREEN_MARGIN_H;
+    const int hi=rs->dm.h-MAIN_SCREEN_MARGIN_V;
     ptr->textureRect.x=BOARDER_SIZE;
     ptr->textureRect.y=BOARDER_SIZE;
     ptr->textureRect.w=wi-BOARDER_SIZE * 2;
     ptr->textureRect.h=hi-BOARDER_SIZE * 2;
-    SDL_Texture *texture=cpl_create_texture_paint_pixels(rs->ren,ptr->textureRect.w,ptr->textureRect.h,pt,NULL);
+    struct GRID_PARAM gp;
+
+    gp.gridsize=GRID_SIZE;
+    gp.bgcolor.a=0xff;
+    gp.bgcolor.r=BG_R;
+    gp.bgcolor.g=BG_G;
+    gp.bgcolor.b=BG_B;
+
+    SDL_Texture *texture=cpl_create_texture_paint_pixels(rs->ren,ptr->textureRect.w,ptr->textureRect.h,grid_texture_callback,&gp);
     if(texture==NULL){
         SDL_Log("texture error (%s)",SDL_GetError());
         return -1;
@@ -130,8 +118,8 @@ int initRunState(RUNSTATE *rs){
         SDL_Log("%s",SDL_GetError());
         return -1;
     }
-    const int wi=rs->dm.w-200;
-    const int hi=rs->dm.h-100;
+    const int wi=rs->dm.w-MAIN_SCREEN_MARGIN_H;
+    const int hi=rs->dm.h-MAIN_SCREEN_MARGIN_V;
     if(SDL_CreateWindowAndRenderer(wi,hi,0,&rs->win,&rs->ren)){
         SDL_Log("create window error %s",SDL_GetError());
         return -1;
@@ -168,8 +156,8 @@ typedef struct SDL_KeyboardEvent
 */
 
 int stage_menu_init(RUNSTATE *,STAGE *);
+int blockGameStageInit(RUNSTATE *rs,STAGE *);
 const int fps=1000/24;
-
 int app(void)
 {
     APPRES aps;
@@ -194,18 +182,19 @@ int app(void)
     MAP keymap;
     keymap=map_new(64);
     stage_menu_init(&rs,&menu);
+    blockGameStageInit(&rs,&game);
     aps.menu=&menu;
     aps.game=&game;
     menu.action->attach(keymap,NULL);
     SDL_Event ev;
     while(SDL_WaitEvent(&ev)){
+
         switch(ev.type){
             case SDL_QUIT:
             rs.runing=0;
             goto exit_loop;
             case SDL_KEYUP:
             {
-
                 action_func action;
                 if(map_get(keymap,ev.key.keysym.sym,(void **)&action)){
                     continue;
@@ -226,6 +215,7 @@ int app(void)
                 current->action->dettech(current->payload);
                 next->action->attach(keymap,ev.user.data2);
                 current=next;
+                SDL_RenderPresent(rs.ren);
             }
             break;
         }

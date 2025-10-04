@@ -1,6 +1,43 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+struct GRID_PARAM{
+    // 底颜色
+    SDL_Color bgcolor;
+    int gridsize;
+};
+/**
+ * @brief 画带格的背景图的回调函数
+ * @param pixels 参考texture的修改回调
+ * @param h
+ * @param pitch
+ * @param param 必须是struct GRID_PARAM*
+ */
+int grid_texture_callback(char *pixels,int h,int pitch,void *param)
+{
+    struct GRID_PARAM *gp=(struct GRID_PARAM *)param;
+    SDL_Log("high:%d,pitch:%d\n",h,pitch);
+    const int cols=pitch/4;
+    for(int iy=0;iy<h;iy++){
+        char *row=pixels+iy*pitch;
+        for(int ix=0;ix<cols;ix++){
+            char *ptr=row+ix*4;
+            char lc=0;
+            if(iy % gp->gridsize ==0){
+                lc=20;
+            }
+            if(ix % gp->gridsize ==0){
+                lc=20;
+            }
+            *ptr= 0xff;
+            *(ptr+1)=gp->bgcolor.r - lc;
+            *(ptr+2)=gp->bgcolor.g - lc;
+            *(ptr+3)=gp->bgcolor.b - lc;
+        }
+    }
+    return 0;
+}
+
 
 int rect_texture_callback(char *pixels,int h,int pitch,void *param)
 {

@@ -12,3 +12,7 @@ typedef struct _APPRES{
     STAGE *game;
     Uint32            colors[256];
 } APPRES;
+//主界面水平边界
+#define MAIN_SCREEN_MARGIN_H 200
+//垂直边界
+#define MAIN_SCREEN_MARGIN_V 100

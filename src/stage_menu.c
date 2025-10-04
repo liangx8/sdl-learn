@@ -4,16 +4,17 @@
 #include "abc_runstate.h"
 #include "appres.h"
 #define MENU_FONT_WIDTH 48
-const char *menustr="开始游戏选项按键定义玩腻了";
-const int rng[]=    {       4, 6,    10,  13};
-struct MENU_STATUS
-{
+#define MENUSTR_LEN 16
+const char *menustr="开始游戏选项按键定义玩腻了あいお";
+const int rng[]=    {       4, 6,    10,  13,   MENUSTR_LEN};
+#define MENUCNT     5
+struct MENU_STATUS{
     RUNSTATE *rs;
     SDL_Texture *menustr;
     SDL_Texture *menuMask;
     SDL_Rect *this;
     SDL_Rect *prev;
-    SDL_Rect rects[4];
+    SDL_Rect rects[MENUCNT];
     int selected;
     int prev_sel;
     int fontw;
@@ -36,6 +37,8 @@ int menu_focus(void)
         dst.y=ms.prev_sel * (ms.fonth + MENU_ROW_GAP)+MENU_TOP_MARGIN;
         SDL_Rect src={dst.x-5,dst.y-5,dst.w,dst.h};
         SDL_RenderCopy(ms.rs->ren,aps->textureBg,&src,&dst);
+        dst.w=ms.rects[ms.prev_sel].w;
+        SDL_RenderCopy(ms.rs->ren,ms.menustr,&ms.rects[ms.prev_sel],&dst);
         ms.prev_sel=ms.selected;
     }
     SDL_Event ev;
@@ -46,7 +49,7 @@ int menu_focus(void)
 }
 int menu_down(void *_)
 {
-    if(ms.selected<3){
+    if(ms.selected<MENUCNT-1){
         ms.selected++;
     } else {
         ms.selected=0;
@@ -55,29 +58,35 @@ int menu_down(void *_)
 }
 int keyup(void * pl)
 {
-    wprintf(L"向上\n");
     if(ms.selected){
         ms.selected--;
     } else {
-        ms.selected=3;
+        ms.selected=MENUCNT-1;
     }
     return menu_focus();
 }
 int menu_return(void *pl)
 {
-    wprintf(L"回车\n");
-    if(ms.selected==3){
+    switch(ms.selected){
+        case 0:
+#if 1
+        {
+            SDL_Event ev;
+            APPRES *aps=(APPRES *)ms.rs->payload;
+            ev.type=ms.rs->switchStageType;
+            ev.user.data1=aps->game;
+            ev.user.data2=NULL;
+            SDL_PushEvent(&ev);
+        }
+#endif
+        break;
+        case 3:
         SDL_Event ev;
         ev.type=SDL_QUIT;
         SDL_PushEvent(&ev);
+        break;
     }
-#if 0
-    SDL_Event ev;
-    ev.type=ms.rs->switchStageType;
-    APPRES *aps=(APPRES *)ms.rs->payload;
-    ev.user.data1=aps->game;
-    SDL_PushEvent(&ev);
-#endif
+
     return 0;
 }
 int menu_esc(void *pl)
@@ -115,7 +124,7 @@ int menu_start(MAP map,void *obj)
     dst.x=(rs->dm.w-200- (4 * ms.fontw)) /2;
     wprintf(L"显示菜单 screen w:%d most left: %d\n",rs->dm.w,dst.x);
     dst.h=ms.fonth;
-    for(int ix=0;ix<4;ix++){
+    for(int ix=0;ix<MENUCNT;ix++){
         dst.y=ix * (ms.fonth + MENU_ROW_GAP)+MENU_TOP_MARGIN;
         dst.w=ms.rects[ix].w;
 #if 0
@@ -155,14 +164,14 @@ extern const char *const cjkfont[];
 int stage_menu_init(RUNSTATE *rs,STAGE *ptr)
 {
     ptr->action=&const_stage_menu;
-    //b00fb6
-    SDL_Color fg={0xb0,0x0f,0xb6,0xff};
+    //0838be
+    SDL_Color fg={0x08,0x38,0xbe,0xff};
     ms.menustr=cpl_create_texture_text(rs->ren,cjkfont[2],menustr,fg,MENU_FONT_WIDTH);
     if(ms.menustr==NULL){
         return -1;
     }
     SDL_QueryTexture(ms.menustr,NULL,NULL,&ms.fontw,&ms.fonth);
-    ms.fontw=ms.fontw/13;
+    ms.fontw=ms.fontw/MENUSTR_LEN;
     SDL_Log("菜单字体:%s\n",cjkfont[1]);
     wprintf(L"menu texture width:%d,height:%d\n",ms.fontw,ms.fonth);
     if(ms.fontw!=MENU_FONT_WIDTH){
@@ -188,7 +197,7 @@ int stage_menu_init(RUNSTATE *rs,STAGE *ptr)
     }
     // SDL_SetTextureColorMod(ms.menuMask,0xf1,0x53,0xbd);
     int x=0;
-    for(int ix=0;ix<4;ix++){
+    for(int ix=0;ix<MENUCNT;ix++){
         ms.rects[ix].x=x;
         ms.rects[ix].y=0;
         ms.rects[ix].h=ms.fonth;

@@ -1,10 +1,10 @@
 typedef int (*LT)(const void *,const void *);
 /**
- * @brief 在排序队列中查找,
+ * @brief 在排序队列中查找,caller有责任检查num不是０，并且base必须有序
  * @param base 排序队列
  * @param key 
  * @param size
- * @param num
+ * @param num 不能是０
  * @param lt
  */
 long bfind(const void *base,const void *key,int size,long num,LT lt)

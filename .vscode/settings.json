@@ -13,6 +13,7 @@
         "sdl_main.h": "c",
         "appstate.h": "c",
         "cpl.h": "c",
-        "charconv": "c"
+        "charconv": "c",
+        "appres.h": "c"
     }
 }

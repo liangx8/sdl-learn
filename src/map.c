@@ -93,6 +93,9 @@ int map_set(struct _MAP *map,int key,const void *obj)
 }
 int map_get(struct _MAP *map,int key,const void **ref)
 {
+    if(map->cnt==0){
+        return -1;
+    }
     long idx=bfind(map->pairs,&key,12,map->cnt,(LT)map_lt);
     if(idx==map->cnt){
         return -1;
