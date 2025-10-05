@@ -3,7 +3,7 @@
 #include "abc_action.h"
 
 typedef struct {
-    int (*attach)(MAP,void *);
+    action_func attach;
     action_func run;
     action_func dettech;
 } STAGE_ACTION;

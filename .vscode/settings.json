@@ -14,6 +14,7 @@
         "appstate.h": "c",
         "cpl.h": "c",
         "charconv": "c",
-        "appres.h": "c"
+        "appres.h": "c",
+        "abc.h": "c"
     }
 }

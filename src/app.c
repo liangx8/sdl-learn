@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <SDL2/SDL_ttf.h>
 #include "appres.h"
-#include "abc_stage.h"
+#include "abc.h"
 
 #define BG_BORDER_R 0x23
 #define BG_BORDER_G 0xbf
@@ -128,7 +128,15 @@ int initRunState(RUNSTATE *rs){
     SDL_Log("window size(h:%d,w:%d) CPU cores: \033[0;37;42m%d\033[0m\n",rs->dm.h,rs->dm.w,rs->cpunum);
     rs->runing=1;
     SDL_SetWindowTitle(rs->win,"加油努力");
-    rs->switchStageType = SDL_RegisterEvents(10);
+    Uint32 ctype = SDL_RegisterEvents(USER_TYPE_MAX);
+    if(SWITCH_STAGE_TYPE != ctype){
+        SDL_Log("用户定义类型已经被占用expect 0x8000,but %d\n",ctype);
+        SDL_DestroyRenderer(rs->ren);
+        SDL_DestroyWindow(rs->win);
+        return -1;
+    }
+    wprintf(L"USER TYPE:%4x,%4x\n",SWITCH_STAGE_TYPE,USER1_TYPE);
+
     return 0;
 }
 void releaseAppState(APPRES *ptr)
@@ -162,7 +170,7 @@ int app(void)
 {
     APPRES aps;
     RUNSTATE rs;
-    if(SDL_Init(SDL_INIT_VIDEO)){
+    if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER)){
         SDL_Log("initial error %s",SDL_GetError());
         return -1;
     }
@@ -178,54 +186,19 @@ int app(void)
     }
 
     STAGE menu,game;
-    STAGE *current=&menu;
-    MAP keymap;
-    keymap=map_new(64);
     stage_menu_init(&rs,&menu);
     blockGameStageInit(&rs,&game);
+
     aps.menu=&menu;
     aps.game=&game;
-    menu.action->attach(keymap,NULL);
-    SDL_Event ev;
-    while(SDL_WaitEvent(&ev)){
-
-        switch(ev.type){
-            case SDL_QUIT:
-            rs.runing=0;
-            goto exit_loop;
-            case SDL_KEYUP:
-            {
-                action_func action;
-                if(map_get(keymap,ev.key.keysym.sym,(void **)&action)){
-                    continue;
-                }
-                action(current->payload);
-            }
-            break;
-            case SDL_WINDOWEVENT:
-            if(ev.window.event==SDL_WINDOWEVENT_EXPOSED){
-                SDL_RenderPresent(rs.ren);
-                //SDL_Log("window event occur!event:%d,type:%d,data1:%d,data2:%d",ev.window.event,ev.window.type,ev.window.data1,ev.window.data2);
-            }
-            break;
-            default:
-            if(ev.type==rs.switchStageType)
-            {
-                STAGE *next=(STAGE *)ev.user.data1;
-                current->action->dettech(current->payload);
-                next->action->attach(keymap,ev.user.data2);
-                current=next;
-                SDL_RenderPresent(rs.ren);
-            }
-            break;
-        }
+    if(app_run(&rs,&menu)){
+        SDL_Log("有错误%s",SDL_GetError());
     }
-    exit_loop:
+    
     //SDL_WaitThread(x,NULL);
     releaseAppState(&aps);
     TTF_Quit();
     SDL_Quit();
-    map_free(keymap);
     return 0;
 }
 int main(int argc,char **argv)

@@ -125,6 +125,7 @@ int cpl_create_texture_ascii(SDL_Renderer *ren,const char *fontname,SDL_Color co
 {
     TTF_Font *font=TTF_OpenFont(fontname,size);
     if(font==NULL){
+        SDL_Log("cpl_create_texture_ascii() open font error: %s",TTF_GetError());
         return -1;
     }
     // 0xff01 - 0xff5f
@@ -138,16 +139,22 @@ int cpl_create_texture_ascii(SDL_Renderer *ren,const char *fontname,SDL_Color co
     SDL_Surface *surf=TTF_RenderUTF8_Solid(font,&chs[0],color);
     TTF_CloseFont(font);
     if(surf==NULL){
+        SDL_Log("cpl_create_texture_ascii() create surface error %s",TTF_GetError());
         return -1;
     }
     SDL_Texture *tx=SDL_CreateTextureFromSurface(ren,surf);
     SDL_FreeSurface(surf);
     if(tx==NULL){
+        SDL_Log("cpl_create_texture_ascii() create texture error %s",SDL_GetError());
         return -1;
     }
     tasc->texture=tx;
     int w;
-    SDL_QueryTexture(tx,NULL,NULL,&w,&tasc->h);
+    if(SDL_QueryTexture(tx,NULL,NULL,&w,&tasc->h)){
+        SDL_Log("cpl_create_texture_ascii() query texture error %s",SDL_GetError());
+        return -1;
+    }
+    
     tasc->w=w/total;
     SDL_Log("英文字体:%s, size(width:%d,height:%d)",fontname,tasc->w,tasc->h);
     return 0;
@@ -156,6 +163,7 @@ SDL_Texture *cpl_create_texture_text(SDL_Renderer *ren,const char *fontname,cons
 {
     TTF_Font *font=TTF_OpenFont(fontname,size);
     if(font==NULL){
+        SDL_Log("cpl_create_texture_text() open font error: %s",TTF_GetError());
         return NULL;
     }
 #if 1
@@ -168,11 +176,13 @@ SDL_Texture *cpl_create_texture_text(SDL_Renderer *ren,const char *fontname,cons
 #endif
     TTF_CloseFont(font);
     if(surf==NULL){
+        SDL_Log("cpl_create_texture_text() create surface error %s",TTF_GetError());
         return NULL;
     }
     SDL_Texture *tx=SDL_CreateTextureFromSurface(ren,surf);
     SDL_FreeSurface(surf);
     if(tx==NULL){
+        SDL_Log("cpl_create_texture_text() create texture error %s",SDL_GetError());
         return NULL;
     }
     return tx;

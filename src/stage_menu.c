@@ -1,7 +1,6 @@
-#include "abc_stage.h"
+#include "abc.h"
 #include "cpl.h"
 #include "map.h"
-#include "abc_runstate.h"
 #include "appres.h"
 #define MENU_FONT_WIDTH 48
 #define MENUSTR_LEN 16
@@ -19,6 +18,8 @@ struct MENU_STATUS{
     int prev_sel;
     int fontw;
     int fonth;
+    int maskw;\
+    int maskh;
 } ms;
 
 #define MENU_ROW_GAP 20
@@ -27,7 +28,8 @@ int menu_focus(void)
 {
     APPRES *aps=(APPRES *)ms.rs->payload;
     SDL_Rect dst;
-    SDL_QueryTexture(ms.menuMask,NULL,NULL,&dst.w,&dst.h);
+    dst.w=ms.maskw;
+    dst.h=ms.maskh;
 
     dst.y=ms.selected * (ms.fonth + MENU_ROW_GAP) + MENU_TOP_MARGIN;
     dst.x=(ms.rs->dm.w-200- (4 * ms.fontw)) /2;
@@ -36,9 +38,9 @@ int menu_focus(void)
         // 删除旧的mask
         dst.y=ms.prev_sel * (ms.fonth + MENU_ROW_GAP)+MENU_TOP_MARGIN;
         SDL_Rect src={dst.x-5,dst.y-5,dst.w,dst.h};
-        SDL_RenderCopy(ms.rs->ren,aps->textureBg,&src,&dst);
+        MINUS_ERR(SDL_RenderCopy(ms.rs->ren,aps->textureBg,&src,&dst))
         dst.w=ms.rects[ms.prev_sel].w;
-        SDL_RenderCopy(ms.rs->ren,ms.menustr,&ms.rects[ms.prev_sel],&dst);
+        MINUS_ERR(SDL_RenderCopy(ms.rs->ren,ms.menustr,&ms.rects[ms.prev_sel],&dst))
         ms.prev_sel=ms.selected;
     }
     SDL_Event ev;
@@ -70,14 +72,8 @@ int menu_return(void *pl)
     switch(ms.selected){
         case 0:
 #if 1
-        {
-            SDL_Event ev;
-            APPRES *aps=(APPRES *)ms.rs->payload;
-            ev.type=ms.rs->switchStageType;
-            ev.user.data1=aps->game;
-            ev.user.data2=NULL;
-            SDL_PushEvent(&ev);
-        }
+        APPRES *aps=(APPRES *)ms.rs->payload;
+        stage_switch(aps->game);
 #endif
         break;
         case 3:
@@ -96,14 +92,12 @@ int menu_esc(void *pl)
     SDL_PushEvent(&ev);
     return 0;
 }
-int menu_start(MAP map,void *obj)
+int menu_start(MAP map)
 {
     RUNSTATE *rs=ms.rs;
     APPRES *aps=(APPRES*)rs->payload;
-    if(obj==NULL){
         //画背景
-        SDL_RenderCopy(rs->ren,aps->textureBg,NULL,&aps->textureRect);
-    }
+    SDL_RenderCopy(rs->ren,aps->textureBg,NULL,&aps->textureRect);
     map_clear(map);
     if(map_set(map,SDLK_UP,keyup)){
         return -1;
@@ -189,12 +183,13 @@ int stage_menu_init(RUNSTATE *rs,STAGE *ptr)
         ms.fonth,
         rect_texture_callback,
         &fg);
-    if(SDL_SetTextureBlendMode(ms.menuMask,SDL_BLENDMODE_BLEND)){
+    if(ms.menuMask==NULL){
         return -1;
     }
-    if(SDL_SetTextureAlphaMod(ms.menuMask,127)){
-        return -1;
-    }
+    ms.maskh=ms.fonth;
+    ms.maskw=200;
+    MINUS_ERR(SDL_SetTextureBlendMode(ms.menuMask,SDL_BLENDMODE_BLEND))
+    MINUS_ERR(SDL_SetTextureAlphaMod(ms.menuMask,127))
     // SDL_SetTextureColorMod(ms.menuMask,0xf1,0x53,0xbd);
     int x=0;
     for(int ix=0;ix<MENUCNT;ix++){

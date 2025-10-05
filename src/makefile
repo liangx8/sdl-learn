@@ -7,7 +7,7 @@ TARGET=sdl
 ifeq (${OPTC}X,X)
 	CFLAGS+=-O2
 else
-	CFLAGS+=${IOTC}
+	CFLAGS+=${OPTC}
 endif
 
 SRCS=${wildcard *.c}
