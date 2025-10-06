@@ -18,12 +18,16 @@ struct GAMESTATE{
     SDL_Rect     gameLayer;
     SDL_Rect     previewLayer;
     SDL_Color    bgcolor;
-    int          blocksize;
     int          gameStatus;
+    int          blocksize;
 } gs;
-#define GS_GAMEOK    0
-#define GS_GAMEOVER  -1
-#define GS_GAMEERROR -2
+#define GS_GAMEERROR      -1
+#define GS_GAMEOK         0
+#define GS_TIMERFALL      1
+#define GS_GAMEOVER       2
+
+#define SCORES_TEXT_POS_X 10
+#define SCORES_TEXT_POS_Y 90
 extern struct BLOCK_DATA bd;
 int play_update(void)
 {
@@ -53,7 +57,12 @@ int play_update(void)
         MINUS_ERR(SDL_RenderCopy(gs.rs->ren,gs.blankBackground,&src,&dst))
     }
     // 画新块
-    MINUS_ERR(SDL_SetRenderDrawColor(gs.rs->ren,color & 0xff,(color >> 8) & 0xff,(color >> 16) & 8,0xff))
+    MINUS_ERR(SDL_SetRenderDrawColor(
+        gs.rs->ren,
+        color & 0xff,
+        (color >> 8) & 0xff,
+        (color >> 16) & 0xff,
+        (color >> 24) & 0xff))
     for(int ix=0;ix<16;ix++){
         int pos=bd.blocks[ix];
         if(pos==0){
@@ -66,29 +75,39 @@ int play_update(void)
         dst.y=basey+y*gs.blocksize;
         MINUS_ERR(SDL_RenderFillRect(gs.rs->ren,&dst))
     }
+    SDL_memset4(bd.old,0,8);
+    MINUS_ERR(SDL_RenderCopy(gs.rs->ren,gs.blankBackground,&dst,&gs.gameLayer))
+    //显示得分
+    char ss[8];
+    scorestr(ss);
+    // 先清背景
+    dst.x=GAME_GROUND_MARGIN+SCORES_TEXT_POS_X+80;
+    dst.y=SCORES_TEXT_POS_Y;
+    src.h=dst.h=30;// 只要大于字体高度就可以
+    src.w=dst.w=100;
+    src.x=dst.x-aps->rectBg.x;// 边的宽度
+    src.y=dst.y-aps->rectBg.y;
+    MINUS_ERR(SDL_RenderCopy(gs.rs->ren,aps->textureBg,&src,&dst))
+    MINUS_ERR(cpl_render_ascii(gs.rs->ren,&aps->font_top,ss,dst.x,dst.y))
     SDL_Event ev;
     ev.type=SDL_WINDOWEVENT;
     ev.window.event=SDL_WINDOWEVENT_EXPOSED;
     SDL_PushEvent(&ev);
     return 0;
 }
-Uint32 block_game_timer(Uint32 intv,void *_)
+Uint32 blg_timer(Uint32 intv,void *_)
 {
-    if(game_block_fall()){
-        wprintf(L"touch buttom\n");
-    } else {
-        wprintf(L"down\n");
-    }
-    if(play_update()){
-        gs.gameStatus=GS_GAMEERROR;
-        return 0;
-    }
+    SDL_Event ev;
+    ev.type=SDL_USEREVENT;
+    ev.user.code=GS_TIMERFALL;
+    SDL_PushEvent(&ev);
     return bd.timerCount;
 }
 int preview_update(void)
 {
     Uint16 type=bd.next;
     APPRES *aps=(APPRES*)gs.rs->payload;
+    MINUS_ERR(SDL_RenderCopy(gs.rs->ren,gs.blankNextPreview,NULL,&gs.previewLayer))
     Uint32 color=aps->colors[bd.nextColorIdx];
     SDL_Rect rect;
     int basex,basey;
@@ -96,7 +115,12 @@ int preview_update(void)
     basey=gs.previewLayer.y+1;
     rect.w=gs.blocksize-1;
     rect.h=gs.blocksize-1;
-    MINUS_ERR(SDL_SetRenderDrawColor(gs.rs->ren,color & 0xff,(color >> 8) & 0xff,(color >> 16) & 8,0xff))
+    MINUS_ERR(SDL_SetRenderDrawColor(
+        gs.rs->ren,
+        color & 0xff,
+        (color >> 8) & 0xff,
+        (color >> 16) & 0xff,
+        (color >> 24) & 0xff))
     for(int ix=0;ix<4;ix++){
         for(int iy=0;iy<4;iy++){
             if(type==0){
@@ -117,29 +141,82 @@ int preview_update(void)
 int block_game_return_menu(void *_)
 {
     APPRES *aps=(APPRES *)gs.rs->payload;
-    stage_switch(aps->menu);
+    MINUS_ERR(switch_stage(aps->menu))
     return 0;
 }
 int block_game_down(void *_)
 {
-    game_block_fall();
-    play_update();
+    int res;
+    if(gs.gameStatus==GS_GAMEOVER){
+        return 0;
+    }
+    LOCK_MUTEX();
+    res=game_block_fall();
+    UNLOCK_MUTEX();
+    if(res){
+        wprintf(L"手动・触底\n");
+        LOCK_MUTEX();
+        res=game_block_next();
+        UNLOCK_MUTEX();
+        if(res){
+            wprintf(L"ＧＡＭＥ　ＯＶＥＲ！\n");
+            gs.gameStatus=GS_GAMEOVER;
+            SDL_RemoveTimer(gs.timerId);
+            gs.timerId=0;
+        }
+        MINUS_ERR(preview_update())
+        return 0;
+    }
+    MINUS_ERR(play_update())
     return 0;
 }
-int block_game_attach(MAP map)
+int block_game_left(void *_)
+{
+    int res;
+    if(gs.gameStatus==GS_GAMEOVER){
+        return 0;
+    }
+    LOCK_MUTEX();
+    res=game_block_left();
+    UNLOCK_MUTEX();
+    if(res){
+        return 0;
+    }
+    MINUS_ERR(play_update())
+    return 0;
+}
+int block_game_right(void *_)
+{
+    int res;
+    if(gs.gameStatus==GS_GAMEOVER){
+        return 0;
+    }
+    LOCK_MUTEX();
+    res=game_block_right();
+    UNLOCK_MUTEX();
+    if(res){
+        return 0;
+    }
+    MINUS_ERR(play_update())
+    return 0;
+}
+int blg_action_attach(MAP map)
 {
     APPRES *aps=(APPRES *)gs.rs->payload;
+    gs.gameStatus=GS_GAMEOK;
     MINUS_ERR(SDL_RenderCopy(gs.rs->ren,gs.blankBackground,NULL,&gs.gameLayer))
     MINUS_ERR(SDL_RenderCopy(gs.rs->ren,gs.blankNextPreview,NULL,&gs.previewLayer))
-    MINUS_ERR(cpl_render_ascii(gs.rs->ren,&aps->font_top,"SCORES:",GAME_GROUND_MARGIN+20,100))
+    MINUS_ERR(cpl_render_ascii(gs.rs->ren,&aps->font_top,"SCORES:",GAME_GROUND_MARGIN+SCORES_TEXT_POS_X,SCORES_TEXT_POS_Y))
     SDL_Log("游戏页面渲染");
     map_clear(map);
     map_set(map,SDLK_ESCAPE,block_game_return_menu);
     map_set(map,SDLK_DOWN,block_game_down);
+    map_set(map,SDLK_LEFT,block_game_left);
+    map_set(map,SDLK_RIGHT,block_game_right);
     game_block_start();
     preview_update();
-#if 0
-    gs.timerId=SDL_AddTimer(bd.timerCount,block_game_timer,NULL);
+#if 1
+    gs.timerId=SDL_AddTimer(bd.timerCount,blg_timer,NULL);
     if(gs.timerId==0){
         SDL_Log("SDL_AddTimer() error %s",SDL_GetError());
         return -1;
@@ -148,16 +225,31 @@ int block_game_attach(MAP map)
     return 0;
 }
 
-int block_game_dettach(void *pl)
+int blg_action_dettach(void *pl)
 {
     SDL_RemoveTimer(gs.timerId);
     gs.timerId=0;
     return 0;
 }
+int blg_action_event(SDL_Event *ev)
+{
+    switch(ev->user.code){
+        case GS_GAMEERROR:
+        SDL_Log("timer error: %s",(const char *)ev->user.data1);
+        SDL_free(ev->user.data1);
+        SDL_RemoveTimer(gs.timerId);
+        gs.timerId=0;
+        return -1;
+        case GS_TIMERFALL:
+        MINUS_ERR(block_game_down(NULL))
+        break;        
+    }
+    return 0;
+}
 const STAGE_ACTION const_saction_block={
-    block_game_attach,
-    (action_func)NULL,
-    block_game_dettach
+    blg_action_attach,
+    blg_action_event,
+    blg_action_dettach
 };
 
 
@@ -195,7 +287,7 @@ int blockGameStageInit(RUNSTATE *rs,STAGE *stage){
     stage->action=&const_saction_block;
     gs.rs=rs;
     stage->payload=&gs;
-    bd.timerCount=300;
+    bd.timerCount=700;
     gs.timerId=0;
     return 0;
 }

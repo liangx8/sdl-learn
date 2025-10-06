@@ -18,7 +18,7 @@ struct MENU_STATUS{
     int prev_sel;
     int fontw;
     int fonth;
-    int maskw;\
+    int maskw;
     int maskh;
 } ms;
 
@@ -73,7 +73,7 @@ int menu_return(void *pl)
         case 0:
 #if 1
         APPRES *aps=(APPRES *)ms.rs->payload;
-        stage_switch(aps->game);
+        MINUS_ERR(switch_stage(aps->game));
 #endif
         break;
         case 3:
@@ -97,7 +97,7 @@ int menu_start(MAP map)
     RUNSTATE *rs=ms.rs;
     APPRES *aps=(APPRES*)rs->payload;
         //画背景
-    SDL_RenderCopy(rs->ren,aps->textureBg,NULL,&aps->textureRect);
+    MINUS_ERR(SDL_RenderCopy(rs->ren,aps->textureBg,NULL,&aps->textureRect))
     map_clear(map);
     if(map_set(map,SDLK_UP,keyup)){
         return -1;
@@ -133,14 +133,14 @@ int menu_start(MAP map)
             }
         }
 #endif
-        SDL_RenderCopy(rs->ren,ms.menustr,&ms.rects[ix],&dst);
+        MINUS_ERR(SDL_RenderCopy(rs->ren,ms.menustr,&ms.rects[ix],&dst))
     }
     ms.selected=0;
     ms.prev_sel=0;
     menu_focus();
     return 0;
 }
-int menu_run(void *pl)
+int menu_run(SDL_Event *pl)
 {
     return 0;
 }
@@ -149,8 +149,8 @@ int menu_end(void *pl)
     return 0;
 }
 const STAGE_ACTION const_stage_menu={
-    menu_start,
-    (action_func)menu_run,
+    (action_func)menu_start,
+    menu_run,
     (action_func)menu_end
 };
 

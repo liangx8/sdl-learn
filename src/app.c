@@ -79,14 +79,21 @@ extern const char *const cjkfont[];
 int initAppState(APPRES *ptr,RUNSTATE *rs)
 {
     for(int ix=1;ix<256;ix++){
-        ptr->colors[ix]=rand() | 0xff000000;
+        Uint32 color;
+        again:
+        color=rand();
+        int r= color & 0xff;
+        int g= (color >> 8) & 0xff;
+        int b= (color >> 16) & 0xff;
+        if((r< 50) && (g < 50) && (b < 50)) goto again;
+        ptr->colors[ix]=color | 0xff000000;
     }
     const int wi=rs->dm.w-MAIN_SCREEN_MARGIN_H;
     const int hi=rs->dm.h-MAIN_SCREEN_MARGIN_V;
-    ptr->textureRect.x=BOARDER_SIZE;
-    ptr->textureRect.y=BOARDER_SIZE;
-    ptr->textureRect.w=wi-BOARDER_SIZE * 2;
-    ptr->textureRect.h=hi-BOARDER_SIZE * 2;
+    ptr->rectBg.x=BOARDER_SIZE;
+    ptr->rectBg.y=BOARDER_SIZE;
+    ptr->rectBg.w=wi-BOARDER_SIZE * 2;
+    ptr->rectBg.h=hi-BOARDER_SIZE * 2;
     struct GRID_PARAM gp;
 
     gp.gridsize=GRID_SIZE;
@@ -95,7 +102,7 @@ int initAppState(APPRES *ptr,RUNSTATE *rs)
     gp.bgcolor.g=BG_G;
     gp.bgcolor.b=BG_B;
 
-    SDL_Texture *texture=cpl_create_texture_paint_pixels(rs->ren,ptr->textureRect.w,ptr->textureRect.h,grid_texture_callback,&gp);
+    SDL_Texture *texture=cpl_create_texture_paint_pixels(rs->ren,ptr->rectBg.w,ptr->rectBg.h,grid_texture_callback,&gp);
     if(texture==NULL){
         SDL_Log("texture error (%s)",SDL_GetError());
         return -1;
@@ -129,13 +136,13 @@ int initRunState(RUNSTATE *rs){
     rs->runing=1;
     SDL_SetWindowTitle(rs->win,"加油努力");
     Uint32 ctype = SDL_RegisterEvents(USER_TYPE_MAX);
-    if(SWITCH_STAGE_TYPE != ctype){
-        SDL_Log("用户定义类型已经被占用expect 0x8000,but %d\n",ctype);
+    if(USER1_TYPE != ctype){
+        SDL_Log("用户定义类型已经被占用expect 0x8000,but 0X%04x\n",ctype);
         SDL_DestroyRenderer(rs->ren);
         SDL_DestroyWindow(rs->win);
         return -1;
     }
-    wprintf(L"USER TYPE:%4x,%4x\n",SWITCH_STAGE_TYPE,USER1_TYPE);
+    wprintf(L"USER TYPE:%4x,%4x\n",USER2_TYPE,USER1_TYPE);
 
     return 0;
 }

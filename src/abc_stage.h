@@ -4,11 +4,14 @@
 
 typedef struct {
     action_func attach;
-    action_func run;
+    typeof (int (*)(SDL_Event *)) userEvent;
     action_func dettech;
 } STAGE_ACTION;
-typedef struct {
+typedef struct _STAGE{
     const STAGE_ACTION *action;
     void *payload;
 } STAGE;
 
+//
+#define LOCK_MUTEX() do{}while(0)
+#define UNLOCK_MUTEX() do{}while(0)

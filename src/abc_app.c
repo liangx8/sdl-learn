@@ -1,13 +1,15 @@
 #include "abc.h"
 #include "map.h"
+STAGE *curStage;
+MAP keymap;
 
-int stage_switch(STAGE *next)
+int switch_stage(STAGE *next)
 {
-    SDL_Event ev;
-    ev.type=SWITCH_STAGE_TYPE;
-    ev.user.data1=next;
-    SDL_PushEvent(&ev);
+    MINUS_ERR(curStage->action->dettech(NULL));
+    MINUS_ERR(next->action->attach(keymap));
+    curStage=next;
     return 0;
+
 }
 #define ERR_EXIT(x) if(x) goto err_exit
 /**
@@ -16,11 +18,14 @@ int stage_switch(STAGE *next)
 int app_run(RUNSTATE *rs,STAGE *start)
 {
     SDL_Event ev;
-    STAGE *cur=start;
-    MAP keymap=map_new(64);
+    curStage=start;
+    keymap=map_new(64);
     start->action->attach(keymap);
 
     while(SDL_WaitEvent(&ev)){
+        if(ev.type >= SDL_USEREVENT){
+            ERR_EXIT(curStage->action->userEvent(&ev));
+        }
         switch (ev.type)
         {
         case SDL_QUIT:
@@ -33,15 +38,6 @@ int app_run(RUNSTATE *rs,STAGE *start)
                 continue;
             }
             ERR_EXIT(action(NULL));
-        }
-        break;
-        case SWITCH_STAGE_TYPE:
-        {
-            STAGE *next=(STAGE *)ev.user.data1;
-            ERR_EXIT(cur->action->dettech(NULL));
-            ERR_EXIT(next->action->attach(keymap));
-            cur=next;
-            SDL_RenderPresent(rs->ren);
         }
         break;
         case SDL_WINDOWEVENT:

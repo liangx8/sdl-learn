@@ -15,6 +15,7 @@
         "cpl.h": "c",
         "charconv": "c",
         "appres.h": "c",
-        "abc.h": "c"
+        "abc.h": "c",
+        "game_block.h": "c"
     }
 }

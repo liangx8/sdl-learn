@@ -6,7 +6,7 @@ typedef struct _APPRES{
     SDL_Texture      *textureBg;
     SDL_mutex        *mutex;
     SDL_cond         *cond;
-    SDL_Rect          textureRect;
+    SDL_Rect          rectBg;
     struct TEXTURE_ASCII font_top;
     STAGE *menu;
     STAGE *game;
