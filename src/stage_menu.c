@@ -43,10 +43,11 @@ int menu_focus(void)
         MINUS_ERR(SDL_RenderCopy(ms.rs->ren,ms.menustr,&ms.rects[ms.prev_sel],&dst))
         ms.prev_sel=ms.selected;
     }
-    SDL_Event ev;
-    ev.type=SDL_WINDOWEVENT;
-    ev.window.event=SDL_WINDOWEVENT_EXPOSED;
-    SDL_PushEvent(&ev);
+    ms.rs->present=1;
+    // SDL_Event ev;
+    // ev.type=SDL_WINDOWEVENT;
+    // ev.window.event=SDL_WINDOWEVENT_EXPOSED;
+    // SDL_PushEvent(&ev);
     return 0;
 }
 int menu_down(void *_)
@@ -97,7 +98,7 @@ int menu_start(MAP map)
     RUNSTATE *rs=ms.rs;
     APPRES *aps=(APPRES*)rs->payload;
         //画背景
-    MINUS_ERR(SDL_RenderCopy(rs->ren,aps->textureBg,NULL,&aps->textureRect))
+    MINUS_ERR(SDL_RenderCopy(rs->ren,aps->textureBg,NULL,&aps->rectBg))
     map_clear(map);
     if(map_set(map,SDLK_UP,keyup)){
         return -1;

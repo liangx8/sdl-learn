@@ -6,5 +6,6 @@ typedef struct _RUNSTATE{
     void            *payload;
     SDL_DisplayMode  dm;
     int              cpunum;
+    int              present;
     int              runing;
 } RUNSTATE;

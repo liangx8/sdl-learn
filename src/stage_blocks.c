@@ -89,10 +89,11 @@ int play_update(void)
     src.y=dst.y-aps->rectBg.y;
     MINUS_ERR(SDL_RenderCopy(gs.rs->ren,aps->textureBg,&src,&dst))
     MINUS_ERR(cpl_render_ascii(gs.rs->ren,&aps->font_top,ss,dst.x,dst.y))
-    SDL_Event ev;
-    ev.type=SDL_WINDOWEVENT;
-    ev.window.event=SDL_WINDOWEVENT_EXPOSED;
-    SDL_PushEvent(&ev);
+    // SDL_Event ev;
+    // ev.type=SDL_WINDOWEVENT;
+    // ev.window.event=SDL_WINDOWEVENT_EXPOSED;
+    // SDL_PushEvent(&ev);
+    gs.rs->present=1;
     return 0;
 }
 Uint32 blg_timer(Uint32 intv,void *_)

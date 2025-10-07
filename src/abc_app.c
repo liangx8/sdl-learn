@@ -21,7 +21,7 @@ int app_run(RUNSTATE *rs,STAGE *start)
     curStage=start;
     keymap=map_new(64);
     start->action->attach(keymap);
-
+    rs->present=1;
     while(SDL_WaitEvent(&ev)){
         if(ev.type >= SDL_USEREVENT){
             ERR_EXIT(curStage->action->userEvent(&ev));
@@ -51,6 +51,11 @@ int app_run(RUNSTATE *rs,STAGE *start)
         //SDL_Log("unhandle event:%04x",ev.type);
         break;
         }
+        if(rs->present){
+            rs->present=0;
+            SDL_RenderPresent(rs->ren);
+        }
+
     }
     exit_loop:
     map_free(keymap);
