@@ -32,7 +32,7 @@ int menu_focus(void)
     dst.h=ms.maskh;
 
     dst.y=ms.selected * (ms.fonth + MENU_ROW_GAP) + MENU_TOP_MARGIN;
-    dst.x=(ms.rs->dm.w-200- (4 * ms.fontw)) /2;
+    dst.x=(ms.rs->winw- (4 * ms.fontw)) /2;
     SDL_RenderCopy(ms.rs->ren,ms.menuMask,NULL,&dst);
     if(ms.selected != ms.prev_sel){
         // 删除旧的mask
@@ -116,7 +116,7 @@ int menu_start(MAP map)
         return -1;
     }
     SDL_Rect dst;
-    dst.x=(rs->dm.w-200- (4 * ms.fontw)) /2;
+    dst.x=(rs->winw- (4 * ms.fontw)) /2;
     wprintf(L"显示菜单 screen w:%d most left: %d\n",rs->dm.w,dst.x);
     dst.h=ms.fonth;
     for(int ix=0;ix<MENUCNT;ix++){
@@ -158,16 +158,17 @@ const STAGE_ACTION const_stage_menu={
 extern const char *const cjkfont[];
 int stage_menu_init(RUNSTATE *rs,STAGE *ptr)
 {
+    const char *usefont=cjkfont[0];
     ptr->action=&const_stage_menu;
     //0838be
     SDL_Color fg={0x08,0x38,0xbe,0xff};
-    ms.menustr=cpl_create_texture_text(rs->ren,cjkfont[2],menustr,fg,MENU_FONT_WIDTH);
+    ms.menustr=cpl_create_texture_text(rs->ren,usefont,menustr,fg,MENU_FONT_WIDTH);
     if(ms.menustr==NULL){
         return -1;
     }
     SDL_QueryTexture(ms.menustr,NULL,NULL,&ms.fontw,&ms.fonth);
     ms.fontw=ms.fontw/MENUSTR_LEN;
-    SDL_Log("菜单字体:%s\n",cjkfont[1]);
+    SDL_Log("菜单字体:%s\n",usefont);
     wprintf(L"menu texture width:%d,height:%d\n",ms.fontw,ms.fonth);
     if(ms.fontw!=MENU_FONT_WIDTH){
         SDL_Log("字体大小不匹配 expected %d,actual %d",MENU_FONT_WIDTH,ms.fontw);

@@ -125,8 +125,20 @@ int initRunState(RUNSTATE *rs){
         SDL_Log("%s",SDL_GetError());
         return -1;
     }
-    const int wi=rs->dm.w-MAIN_SCREEN_MARGIN_H;
-    const int hi=rs->dm.h-MAIN_SCREEN_MARGIN_V;
+    int wi=rs->dm.w-MAIN_SCREEN_MARGIN_H;
+    int hi=rs->dm.h-MAIN_SCREEN_MARGIN_V;
+#if 1
+    if(wi > 1024){
+        rs->winw=wi=1024;
+        rs->winh=hi=768;
+    } else {
+        rs->winw=wi;
+        rs->winh=hi;
+    }
+#else
+    rs->winw=wi;
+    rs->winh=hi;
+#endif
     if(SDL_CreateWindowAndRenderer(wi,hi,0,&rs->win,&rs->ren)){
         SDL_Log("create window error %s",SDL_GetError());
         return -1;

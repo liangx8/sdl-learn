@@ -257,7 +257,7 @@ const STAGE_ACTION const_saction_block={
 
 int blockGameStageInit(RUNSTATE *rs,STAGE *stage){
     // 游戏区轮廓
-    gs.blocksize=(rs->dm.h-MAIN_SCREEN_MARGIN_V-GAME_GROUND_MARGIN*2)/ROW_CNT;
+    gs.blocksize=(rs->winh-MAIN_SCREEN_MARGIN_V-GAME_GROUND_MARGIN*2)/ROW_CNT;
     gs.gameLayer.x=300;
     gs.gameLayer.y=GAME_GROUND_MARGIN;
     // +1 是要预留一条边框位置
