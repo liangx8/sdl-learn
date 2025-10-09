@@ -144,8 +144,21 @@ int  game_block_rotate(void)
 {
     Uint16 blocks[16];
     SDL_memset4(blocks,0,8);
+    int basex=1000,basey=1000;
     for(int ix=0;ix<16;ix++){
-
+        int pos=bd.blocks[ix];
+        if(pos==0){
+            break;
+        }
+        pos --;
+        int x=pos /COL_CNT;
+        if(x<basex){
+            basex=x;
+        }
+        int y=pos / ROW_CNT;
+        if(y<basey){
+            basey=y;
+        }
     }
     return 0;
 

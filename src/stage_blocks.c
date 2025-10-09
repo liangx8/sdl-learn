@@ -76,7 +76,7 @@ int play_update(void)
         MINUS_ERR(SDL_RenderFillRect(gs.rs->ren,&dst))
     }
     SDL_memset4(bd.old,0,8);
-    MINUS_ERR(SDL_RenderCopy(gs.rs->ren,gs.blankBackground,&dst,&gs.gameLayer))
+    //MINUS_ERR(SDL_RenderCopy(gs.rs->ren,gs.blankBackground,&dst,&gs.gameLayer))
     //显示得分
     char ss[8];
     scorestr(ss);
@@ -257,7 +257,7 @@ const STAGE_ACTION const_saction_block={
 
 int blockGameStageInit(RUNSTATE *rs,STAGE *stage){
     // 游戏区轮廓
-    gs.blocksize=(rs->winh-MAIN_SCREEN_MARGIN_V-GAME_GROUND_MARGIN*2)/ROW_CNT;
+    gs.blocksize=(rs->winh-GAME_GROUND_MARGIN*2)/ROW_CNT;
     gs.gameLayer.x=300;
     gs.gameLayer.y=GAME_GROUND_MARGIN;
     // +1 是要预留一条边框位置

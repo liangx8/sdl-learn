@@ -149,7 +149,7 @@ int initRunState(RUNSTATE *rs){
     SDL_SetWindowTitle(rs->win,"加油努力");
     Uint32 ctype = SDL_RegisterEvents(USER_TYPE_MAX);
     if(USER1_TYPE != ctype){
-        SDL_Log("用户定义类型已经被占用expect 0x8000,but 0X%04x\n",ctype);
+        SDL_Log("用户定义类型已经被占用expect 0x8000,but 0x%04x\n",ctype);
         SDL_DestroyRenderer(rs->ren);
         SDL_DestroyWindow(rs->win);
         return -1;
@@ -184,7 +184,6 @@ typedef struct SDL_KeyboardEvent
 
 int stage_menu_init(RUNSTATE *,STAGE *);
 int blockGameStageInit(RUNSTATE *rs,STAGE *);
-const int fps=1000/24;
 int app(void)
 {
     APPRES aps;
