@@ -65,6 +65,22 @@ const Uint16 block_template[]={
 void scorestr(char str[]){
     snprintf(str,8,"%07d",bd.scores);
 }
+int isBBB(int base,Uint8 blocks[])
+{
+    int basex=base % COL_CNT;
+    int basey=base / COL_CNT;
+    for(int ix=0;ix<16;ix++){
+        Uint8 pos=blocks[ix];
+        if(pos==0)break;
+        pos--;
+        int y= pos / COL_CNT;
+        int x= pos % COL_CNT;
+        if(bd.ground[(basey+y)*COL_CNT + basex+x]){
+            return -1;
+        }
+    }
+    return 0;
+}
 /**
  * @brief 固定块到游戏区
  */
@@ -78,10 +94,6 @@ void game_block_fix(void)
         bd.ground[pos]=bd.curColorIdx;
     }
 }
-int check_pos(Uint8 blocks[],int pos)
-{
-
-}
 /**
  * @brief 活动方块向下移动一格
  * @return -1有东西阻塞，不能移动
@@ -90,12 +102,11 @@ int check_pos(Uint8 blocks[],int pos)
 int game_block_fall(void)
 {
     int pos=bd.curPos + COL_CNT;
-    for(int iy=0;iy<4;iy++){
-        for(int ix=0;ix<4;ix++){
-            int idx=bd.blocks[iy*4+ix];
-
-        }
+    if(isBBB(pos,bd.blocks)){
+        game_block_fix();
+        return -1;
     }
+    bd.curPos=pos;
     return 0;
 }
 /**
@@ -104,27 +115,6 @@ int game_block_fall(void)
  */
 int game_block_left(void)
 {
-    Uint16 blocks[16];
-    SDL_memset4(blocks,0,8);
-    for(int ix=0;ix<16;ix++){
-        int min;
-        int pos=bd.blocks[ix];
-        if(pos==0){
-            break;
-        }
-        //取实际位置
-        pos--;
-        //当前行的最小值
-        min=pos / COL_CNT;
-        min = min * COL_CNT;
-        pos--;
-        if((pos < min)||(bd.ground[pos])){
-            return -1;
-        }
-        blocks[ix]=pos+1;
-    }
-    SDL_memcpy4(bd.old,bd.blocks,8);
-    SDL_memcpy4(bd.blocks,blocks,8);
     return 0;
 }  
 /**
@@ -133,50 +123,10 @@ int game_block_left(void)
  */
 int  game_block_right(void)
 {
-    Uint16 blocks[16];
-    SDL_memset4(blocks,0,8);
-    for(int ix=0;ix<16;ix++){
-        int max;
-        int pos=bd.blocks[ix];
-        if(pos==0){
-            break;
-        }
-        //取实际位置
-        pos--;
-        //当前行的最小值
-        max=pos / COL_CNT;
-        max = (max+1) * COL_CNT;
-        pos++;
-        if((pos >= max)||(bd.ground[pos])){
-            return -1;
-        }
-        blocks[ix]=pos+1;
-    }
-    SDL_memcpy4(bd.old,bd.blocks,8);
-    SDL_memcpy4(bd.blocks,blocks,8);
     return 0;
 }
 int  game_block_rotate(void)
 {
-    Uint16 blocks[16];
-    SDL_memset4(blocks,0,8);
-    int basex=1000,basey=1000;
-    for(int ix=0;ix<16;ix++){
-        int pos=bd.blocks[ix];
-        if(pos==0){
-            break;
-        }
-        pos --;
-        int x=pos % COL_CNT;
-        if(x<basex){
-            basex=x;
-        }
-        int y=pos / COL_CNT;
-        if(y<basey){
-            basey=y;
-        }
-    }
-    int baseidx=basey*COL_CNT+basex;
     return 0;
 
 }
@@ -194,19 +144,19 @@ int game_block_next(void)
     bd.nextColorIdx=(rand() & 0xff)+1;
     SDL_memset4(bd.blocks,0,4);
     Uint8 idx=0;
-        for(int ix=0;ix<16;ix++){
-            if(cur==0){
-                break;
-            }
-            if(cur & 1){
-                bd.blocks[idx]=ix+1;
-                idx++;
-            }
-            cur = cur >> 1;
+    for(int ix=0;ix<16;ix++){
+        if(cur==0){
+            break;
+        }
+        if(cur & 1){
+            bd.blocks[idx]=ix+1;
+            idx++;
+        }
+        cur = cur >> 1;
     }
     bd.curPos=COL_CNT/2-2;
     SDL_memset4(bd.old,0,4);
-    return 0;
+    return isBBB(bd.curPos,bd.blocks);
 }
 void game_block_start(void){
     SDL_memset(bd.ground,0,ROW_CNT*COL_CNT);

@@ -29,15 +29,36 @@ struct GAMESTATE{
 #define SCORES_TEXT_POS_X 10
 #define SCORES_TEXT_POS_Y 90
 extern struct BLOCK_DATA bd;
+
+int clean_blocks(int pos,Uint8 blocks[])
+{
+    SDL_Rect dst,src;
+    int bx,by,ax,ay;
+    src.w=gs.blocksize-1;
+    dst.w=gs.blocksize-1;
+    src.h=gs.blocksize-1;
+    dst.h=gs.blocksize-1;
+    bx=gs.gameLayer.x+1;
+    by=gs.gameLayer.y+1;
+    src.x=1;
+    src.y=1;
+    ax=pos % COL_CNT;
+    ay=pos / COL_CNT;
+    for(int ix=0;ix<16;ix++){
+        int idx=blocks[ix];
+        if(idx==0)break;
+        idx--;
+    }
+}
 int play_update(void)
 {
     APPRES *aps=(APPRES*)gs.rs->payload;
-    int basex,basey;
+    int basex,basey,ax,ay;
     Uint32 color;
     SDL_Rect dst;
     dst.w=gs.blocksize-1;
     dst.h=gs.blocksize-1;
-    color=aps->colors[bd.blocksColorIdx];
+    color=aps->colors[bd.curColorIdx];
     basex=gs.gameLayer.x+1;
     basey=gs.gameLayer.y+1;
     SDL_Rect src;
@@ -45,17 +66,6 @@ int play_update(void)
     src.w=dst.w;
     src.x=1;
     src.y=1;
-    // 抹除旧块
-    for(int ix=0;ix<16;ix++){
-        int pos=bd.old[ix];
-        if(pos==0)break;
-        pos--;
-        int x=pos % COL_CNT;
-        int y=pos / COL_CNT;
-        dst.x=basex+x*gs.blocksize;
-        dst.y=basey+y*gs.blocksize;
-        MINUS_ERR(SDL_RenderCopy(gs.rs->ren,gs.blankBackground,&src,&dst))
-    }
     // 画新块
     MINUS_ERR(SDL_SetRenderDrawColor(
         gs.rs->ren,
@@ -63,19 +73,21 @@ int play_update(void)
         (color >> 8) & 0xff,
         (color >> 16) & 0xff,
         (color >> 24) & 0xff))
+    ax=bd.curPos % COL_CNT;
+    ay=bd.curPos / COL_CNT;
     for(int ix=0;ix<16;ix++){
         int pos=bd.blocks[ix];
         if(pos==0){
             break;
         }
         pos --;
-        int x=pos % COL_CNT;
-        int y=pos / COL_CNT;
+        int x=(pos % COL_CNT) + ax;
+        int y=(pos / COL_CNT) + ay;
         dst.x=basex+x*gs.blocksize;
         dst.y=basey+y*gs.blocksize;
         MINUS_ERR(SDL_RenderFillRect(gs.rs->ren,&dst))
     }
-    SDL_memset4(bd.old,0,8);
+//    SDL_memset4(bd.old,0,8);
     //MINUS_ERR(SDL_RenderCopy(gs.rs->ren,gs.blankBackground,&dst,&gs.gameLayer))
     //显示得分
     char ss[8];
