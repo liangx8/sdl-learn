@@ -4,14 +4,15 @@
 #define COL_CNT 15
 struct BLOCK_DATA{
     Uint8        nextColorIdx;   // 下一个颜色
-    Uint8        blocksColorIdx; // 当前方块颜色
+    Uint8        curColorIdx; // 当前方块颜色
     Uint16       next;           // 下一个方块形状，u32形式
+    Uint16       curPos;
     Uint32       timerCount;     // 方块下落的速度1000等于每１秒移动一次
     int          scores;
     // 方块最大由16小块组成 所以是16个位置。当前方块形状，在ground中的偏移位置方式
-    Uint16       blocks[16];
+    Uint8        blocks[16];
     // 图像移动后要消除旧的块。
-    Uint16       old[16];
+    Uint8        old[16];
     Uint8        ground[ROW_CNT*COL_CNT];
 };
 int  game_block_next(void);

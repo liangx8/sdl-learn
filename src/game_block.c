@@ -1,5 +1,29 @@
 #include <wchar.h>
 #include "game_block.h"
+
+
+/*
+0  1  2  3
+4  5  6  7
+8  9  10 11
+12 13 14 15
+
+12 8  4  0
+13 9  5  1
+14 10 6  2
+15 11 7  3
+
+
+*/
+
+
+const char rotation_matrix[16]={
+    3 , 6, 8,12,
+    -2, 1, 4, 7,
+    -7,-4,-1, 2,
+    -12,-9,-6,-3
+};
+
 #if 1
 void showblock(const wchar_t *msg,Uint16 bs[16])
 {
@@ -51,8 +75,12 @@ void game_block_fix(void)
         int pos=bd.blocks[ix];
         if(pos==0)break;
         pos--;
-        bd.ground[pos]=bd.blocksColorIdx;
+        bd.ground[pos]=bd.curColorIdx;
     }
+}
+int check_pos(Uint8 blocks[],int pos)
+{
+
 }
 /**
  * @brief 活动方块向下移动一格
@@ -61,25 +89,13 @@ void game_block_fix(void)
  */
 int game_block_fall(void)
 {
-    Uint16 blocks[16];
-    SDL_memset4(blocks,0,8);
-    for(int ix=0;ix<16;ix++){
-        int pos=bd.blocks[ix];
-        if(pos==0){
-            break;
-        }
-        pos = pos +COL_CNT-1;
+    int pos=bd.curPos + COL_CNT;
+    for(int iy=0;iy<4;iy++){
+        for(int ix=0;ix<4;ix++){
+            int idx=bd.blocks[iy*4+ix];
 
-        if((bd.ground[pos]) || (pos >= ROW_CNT * COL_CNT)){
-            //触碰到底部，-1退出
-            game_block_fix();
-            bd.scores++;
-            return -1;
         }
-        blocks[ix]=pos+1;
     }
-    SDL_memcpy4(bd.old,bd.blocks,8);
-    SDL_memcpy4(bd.blocks,blocks,8);
     return 0;
 }
 /**
@@ -151,15 +167,16 @@ int  game_block_rotate(void)
             break;
         }
         pos --;
-        int x=pos /COL_CNT;
+        int x=pos % COL_CNT;
         if(x<basex){
             basex=x;
         }
-        int y=pos / ROW_CNT;
+        int y=pos / COL_CNT;
         if(y<basey){
             basey=y;
         }
     }
+    int baseidx=basey*COL_CNT+basex;
     return 0;
 
 }
@@ -171,31 +188,24 @@ int  game_block_rotate(void)
 int game_block_next(void)
 {
     Uint16 cur=bd.next;
-    bd.blocksColorIdx=bd.nextColorIdx;
+    bd.curColorIdx=bd.nextColorIdx;
 
     bd.next=block_template[rand() % 7];
     bd.nextColorIdx=(rand() & 0xff)+1;
-    SDL_memset(bd.blocks,0,32);
-    int idx=0;
-    for(int iy=0;iy<4;iy++){
-        for(int ix=0;ix<4;ix++){
+    SDL_memset4(bd.blocks,0,4);
+    Uint8 idx=0;
+        for(int ix=0;ix<16;ix++){
             if(cur==0){
-                goto outer_loop;
+                break;
             }
             if(cur & 1){
-                int pos=iy*COL_CNT+ix + COL_CNT/2 -2;
-                if(bd.ground[pos]){
-                    return -1;
-                }
-                // 
-                bd.blocks[idx]=pos+1;
+                bd.blocks[idx]=ix+1;
                 idx++;
             }
             cur = cur >> 1;
-        }
     }
-    outer_loop:
-    SDL_memset4(bd.old,0,8);
+    bd.curPos=COL_CNT/2-2;
+    SDL_memset4(bd.old,0,4);
     return 0;
 }
 void game_block_start(void){
@@ -206,3 +216,4 @@ void game_block_start(void){
     game_block_next();
     bd.scores=0;
 }
+
