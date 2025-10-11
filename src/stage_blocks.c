@@ -38,8 +38,8 @@ int clean_blocks(int pos,Uint8 blocks[])
     dst.w=gs.blocksize-1;
     src.h=gs.blocksize-1;
     dst.h=gs.blocksize-1;
-    bx=gs.gameLayer.x+1;
-    by=gs.gameLayer.y+1;
+    // bx=gs.gameLayer.x+1;
+    // by=gs.gameLayer.y+1;
     src.x=1;
     src.y=1;
     ax=pos % COL_CNT;
@@ -48,24 +48,23 @@ int clean_blocks(int pos,Uint8 blocks[])
         int idx=blocks[ix];
         if(idx==0)break;
         idx--;
+        bx=idx % 4 + ax;
+        by=idx / 4 + ay;
+        dst.x=gs.gameLayer.x+1 + bx * gs.blocksize;
+        dst.y=gs.gameLayer.y+1 + by * gs.blocksize;
+        MINUS_ERR(SDL_RenderCopy(gs.rs->ren,gs.blankBackground,&src,&dst));
     }
+    return 0;
 }
 int play_update(void)
 {
     APPRES *aps=(APPRES*)gs.rs->payload;
-    int basex,basey,ax,ay;
+    int ax,ay;
     Uint32 color;
     SDL_Rect dst;
     dst.w=gs.blocksize-1;
     dst.h=gs.blocksize-1;
     color=aps->colors[bd.curColorIdx];
-    basex=gs.gameLayer.x+1;
-    basey=gs.gameLayer.y+1;
-    SDL_Rect src;
-    src.h=dst.h;
-    src.w=dst.w;
-    src.x=1;
-    src.y=1;
     // 画新块
     MINUS_ERR(SDL_SetRenderDrawColor(
         gs.rs->ren,
@@ -77,19 +76,21 @@ int play_update(void)
     ay=bd.curPos / COL_CNT;
     for(int ix=0;ix<16;ix++){
         int pos=bd.blocks[ix];
+        int bx,by;
         if(pos==0){
             break;
         }
         pos --;
-        int x=(pos % COL_CNT) + ax;
-        int y=(pos / COL_CNT) + ay;
-        dst.x=basex+x*gs.blocksize;
-        dst.y=basey+y*gs.blocksize;
+        bx=(pos % 4) + ax;
+        by=(pos / 4) + ay;
+        dst.x=gs.gameLayer.x+1+bx*gs.blocksize;
+        dst.y=gs.gameLayer.y+1+by*gs.blocksize;
         MINUS_ERR(SDL_RenderFillRect(gs.rs->ren,&dst))
     }
 //    SDL_memset4(bd.old,0,8);
     //MINUS_ERR(SDL_RenderCopy(gs.rs->ren,gs.blankBackground,&dst,&gs.gameLayer))
     //显示得分
+    SDL_Rect src;
     char ss[8];
     scorestr(ss);
     // 先清背景
@@ -159,28 +160,6 @@ int block_game_return_menu(void *_)
 }
 int block_game_down(void *_)
 {
-    int res;
-    if(gs.gameStatus==GS_GAMEOVER){
-        return 0;
-    }
-    LOCK_MUTEX();
-    res=game_block_fall();
-    UNLOCK_MUTEX();
-    if(res){
-        wprintf(L"手动・触底\n");
-        LOCK_MUTEX();
-        res=game_block_next();
-        UNLOCK_MUTEX();
-        if(res){
-            wprintf(L"ＧＡＭＥ　ＯＶＥＲ！\n");
-            gs.gameStatus=GS_GAMEOVER;
-            SDL_RemoveTimer(gs.timerId);
-            gs.timerId=0;
-        }
-        MINUS_ERR(preview_update())
-        return 0;
-    }
-    MINUS_ERR(play_update())
     return 0;
 }
 int block_game_left(void *_)
