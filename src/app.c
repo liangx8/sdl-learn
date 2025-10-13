@@ -1,12 +1,12 @@
-// https://examples.libsdl.org/SDL3/renderer/01-clear/
 
-
+#include <locale.h>
+#include <wchar.h>
 #include <stdio.h>
 #include <malloc.h>
-
-//#include <SDL3/SDL.h>
-#include "appstate.h"
+#include <unistd.h>
 #include <SDL2/SDL_ttf.h>
+#include "appres.h"
+#include "abc.h"
 
 #define BG_BORDER_R 0x23
 #define BG_BORDER_G 0xbf
@@ -15,30 +15,31 @@
 #define BG_R 0xfa
 #define BG_G 0xeb
 #define BG_B 0xd1
-#define GRID_SIZE 80
+#define GRID_SIZE 40
 
 
 SDL_Color red={0xff,0,0,0xff};
-
+#if 0
 int pt(char *pixels,int h,int pitch,void *param)
 {
+    
     SDL_Log("high:%d,pitch:%d\n",h,pitch);
+    const int cols=pitch/4;
     int col[]={0,h-1};
+    // ２水平边
     for(int cx=0;cx<2;cx++){
-        for(int ix=0;ix<pitch;ix++){
-            char *ptr1=pixels+col[cx]*pitch+ix;
-            switch(ix & 3){
-                case 0: // alpha
-                    *ptr1=0xff; break;
-                case 1: // red
-                    *ptr1=BG_BORDER_R; break;
-                case 2: // green
-                    *ptr1=BG_BORDER_G; break;
-                case 3: // blue
-                    *ptr1=BG_BORDER_B; break;
-            }
+        for(int ix=0;ix<cols;ix++){
+            char *ptr1=pixels+col[cx]*pitch+ix*4;
+            *ptr1=0xff;
+            ptr1++;
+            *ptr1=BG_BORDER_R;
+            ptr1++;
+            *ptr1=BG_BORDER_G;
+            ptr1++;
+            *ptr1=BG_BORDER_B;
         }
     }
+    // 画２垂直边
     for(int rx=0;rx<2;rx++){
         int row[]={0,pitch-4};
         for(int iy=0;iy<h;iy++){
@@ -51,89 +52,143 @@ int pt(char *pixels,int h,int pitch,void *param)
     }
     for(int iy=1;iy<h-1;iy++){
         char *row=pixels+iy*pitch;
-        for(int ix=4;ix<pitch-4;ix++){
-            char *ptr=row+ix;
+        for(int ix=0;ix<cols-1;ix++){
+            char *ptr=row+ix*4;
             char lc=0;
             if(iy % GRID_SIZE ==0){
                 lc=20;
             }
-            int tmp=ix /4;
-            if(tmp % GRID_SIZE ==0){
+            if(ix % GRID_SIZE ==0){
                 lc=20;
             }
-            switch(ix & 3){
-                case 0: // alpha
-                    *ptr=0xff; break;
-                case 1: // red
-                    *ptr=BG_R - lc; break;
-                case 2: // green
-                    *ptr=BG_G - lc; break;
-                case 3: // blue
-                    *ptr=BG_B - lc; break;
-            }
+            *ptr= 0xff;
+            *(ptr+1)=BG_R - lc;
+            *(ptr+2)=BG_G - lc;
+            *(ptr+3)=BG_B - lc;
         }
     }
     return 0;
 }
-const char *const fontname[];
-int appevent(struct APPSTATE *,SDL_Event *);
-int app_run(struct APPSTATE *,Uint32);
-int updateBackground(void*);
-struct GAMESTATE *newGameState(int row,int col);
+#endif
+extern const char *const fontname[];
+extern const char *const monofont[];
+extern const char *const cjkfont[];
 
-#define BOARDER_WIDTH 25
-int initAppState(struct APPSTATE *ptr)
+//#define HAN_CHAR 1
+#define BOARDER_SIZE 5
+int initAppState(APPRES *ptr,RUNSTATE *rs)
 {
-    ptr->colors[0]=0xff;
     for(int ix=1;ix<256;ix++){
-        ptr->colors[ix]=rand() | 0xff000000;
+        Uint32 color;
+        again:
+        color=rand();
+        int r= color & 0xff;
+        int g= (color >> 8) & 0xff;
+        int b= (color >> 16) & 0xff;
+        if((r< 50) && (g < 50) && (b < 50)) goto again;
+        ptr->colors[ix]=color | 0xff000000;
     }
-    if(SDL_GetCurrentDisplayMode(0,&ptr->dm)){
-        SDL_Log("%s",SDL_GetError());
-        return -1;
-    }
-    ptr->gs=newGameState(40,20);
-    const int wi=ptr->dm.w-400;
-    const int hi=ptr->dm.h-200;
-    if(SDL_CreateWindowAndRenderer(wi,hi,0,&ptr->win,&ptr->render)){
-        SDL_Log("create window error %s",SDL_GetError());
-        return -1;
-    }
-    ptr->textureRect.x=BOARDER_WIDTH;
-    ptr->textureRect.y=BOARDER_WIDTH;
-    ptr->textureRect.w=wi-BOARDER_WIDTH * 2;
-    ptr->textureRect.h=hi-BOARDER_WIDTH * 2;
-    SDL_Texture *texture=cpl_create_texture_paint_pixels(ptr->render,ptr->textureRect.w,ptr->textureRect.h,pt,NULL);
+    const int wi=rs->dm.w-MAIN_SCREEN_MARGIN_H;
+    const int hi=rs->dm.h-MAIN_SCREEN_MARGIN_V;
+    ptr->rectBg.x=BOARDER_SIZE;
+    ptr->rectBg.y=BOARDER_SIZE;
+    ptr->rectBg.w=wi-BOARDER_SIZE * 2;
+    ptr->rectBg.h=hi-BOARDER_SIZE * 2;
+    struct GRID_PARAM gp;
+
+    gp.gridsize=GRID_SIZE;
+    gp.bgcolor.a=0xff;
+    gp.bgcolor.r=BG_R;
+    gp.bgcolor.g=BG_G;
+    gp.bgcolor.b=BG_B;
+
+    SDL_Texture *texture=cpl_create_texture_paint_pixels(rs->ren,ptr->rectBg.w,ptr->rectBg.h,grid_texture_callback,&gp);
     if(texture==NULL){
         SDL_Log("texture error (%s)",SDL_GetError());
         return -1;
     }
-    ptr->texture=texture;
-    //cpl_create_texture_ascii_ucs2(ptr->render,fontname[0],red,30,&ptr->font_top);
-    cpl_create_texture_ascii(ptr->render,fontname[0],red,30,&ptr->font_top);
-    ptr->cpunum=SDL_GetCPUCount();
-    SDL_Log("window size(h:%d,w:%d) CPU cores: \033[0;37;42m%d\033[0m\n",ptr->dm.h,ptr->dm.w,ptr->cpunum);
-    ptr->runing=1;
-    SDL_SetWindowTitle(ptr->win,"加油努力");
-    ptr->mutex=SDL_CreateMutex();
+    ptr->textureBg=texture;
+#ifdef HAN_CHAR
+    if(cpl_create_texture_ascii_ucs2(rs->ren,cjkfont[0],red,19,&ptr->font_top)){
+#else
+    if(cpl_create_texture_ascii(rs->ren,monofont[0],red,19,&ptr->font_top)){
+#endif
+        SDL_Log("texture error (%s)",SDL_GetError());
+        return -1;
+    }
+    // ptr->mutex=SDL_CreateMutex();
+    rs->payload=ptr;
     return 0;
 }
-void releaseAppState(struct APPSTATE *ptr)
-{
-    SDL_DestroyRenderer(ptr->render);
-    SDL_DestroyWindow(ptr->win);
-    SDL_DestroyTexture(ptr->texture);
-    SDL_DestroyTexture(ptr->font_top.texture);
-    SDL_DestroyMutex(ptr->mutex);
-    free(ptr->gs);
+int initRunState(RUNSTATE *rs){
+    if(SDL_GetCurrentDisplayMode(0,&rs->dm)){
+        SDL_Log("%s",SDL_GetError());
+        return -1;
+    }
+    int wi=rs->dm.w-MAIN_SCREEN_MARGIN_H;
+    int hi=rs->dm.h-MAIN_SCREEN_MARGIN_V;
+#if 1
+    if(wi > 1024){
+        rs->winw=wi=1024;
+        rs->winh=hi=768;
+    } else {
+        rs->winw=wi;
+        rs->winh=hi;
+    }
+#else
+    rs->winw=wi;
+    rs->winh=hi;
+#endif
+    if(SDL_CreateWindowAndRenderer(wi,hi,0,&rs->win,&rs->ren)){
+        SDL_Log("create window error %s",SDL_GetError());
+        return -1;
+    }
+    rs->cpunum=SDL_GetCPUCount();
+    SDL_Log("window size(h:%d,w:%d) CPU cores: \033[0;37;42m%d\033[0m\n",rs->dm.h,rs->dm.w,rs->cpunum);
+    rs->runing=1;
+    SDL_SetWindowTitle(rs->win,"加油努力");
+    Uint32 ctype = SDL_RegisterEvents(USER_TYPE_MAX);
+    if(USER1_TYPE != ctype){
+        SDL_Log("用户定义类型已经被占用expect 0x8000,but 0x%04x\n",ctype);
+        SDL_DestroyRenderer(rs->ren);
+        SDL_DestroyWindow(rs->win);
+        return -1;
+    }
+    wprintf(L"USER TYPE:%4x,%4x\n",USER2_TYPE,USER1_TYPE);
+
+    return 0;
 }
-const int fps=1000/24;
-
-
-int main(int argc,char *argv[])
+void releaseAppState(APPRES *ptr)
 {
-    struct APPSTATE aps;
-    if(SDL_Init(SDL_INIT_VIDEO)){
+    SDL_DestroyTexture(ptr->textureBg);
+    SDL_DestroyTexture(ptr->font_top.texture);
+//    SDL_DestroyMutex(ptr->mutex);
+}
+int updateBackground(void *x)
+{
+    return 0;
+}
+/*
+typedef struct SDL_KeyboardEvent
+{
+    Uint32 type;        **< SDL_KEYDOWN or SDL_KEYUP *
+    Uint32 timestamp;   **< In milliseconds, populated using SDL_GetTicks() *
+    Uint32 windowID;    **< The window with keyboard focus, if any *
+    Uint8 state;        **< SDL_PRESSED or SDL_RELEASED *
+    Uint8 repeat;       **< Non-zero if this is a key repeat *
+    Uint8 padding2;
+    Uint8 padding3;
+    SDL_Keysym keysym;  **< The key that was pressed or released *
+} SDL_KeyboardEvent;
+*/
+
+int stage_menu_init(RUNSTATE *,STAGE *);
+int blockGameStageInit(RUNSTATE *rs,STAGE *);
+int app(void)
+{
+    APPRES aps;
+    RUNSTATE rs;
+    if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER)){
         SDL_Log("initial error %s",SDL_GetError());
         return -1;
     }
@@ -141,105 +196,42 @@ int main(int argc,char *argv[])
         SDL_Log("init ttf error (%s)",TTF_GetError());
         return -1;
     }
-    if(initAppState(&aps)){
+    if(initRunState(&rs)){
         return -1;
     }
-    Uint32 tick_prev=SDL_GetTicks();
-    SDL_Thread *x= SDL_CreateThread(updateBackground,"background",&aps);
-    int cnt=0;
-    while(aps.runing){
-        SDL_Event ev;
-        while(SDL_PollEvent(&ev)){
-            if(ev.type==SDL_QUIT){
-                aps.runing=0;
-            }
-            if(appevent(&aps,&ev)){
-                SDL_Log("some error %s",SDL_GetError());
-                break;
-            }
-        }
-        Uint32 tick_now=SDL_GetTicks();
-        Uint32 peri=tick_now-tick_prev;
-        if(peri > fps){
-            tick_prev=tick_now;
-            if(app_run(&aps,tick_now)){
-                SDL_Log("some error %s",SDL_GetError());
-                break;
-            }
-            if(aps.screenOut){
-                aps.screenOut=0;
-                SDL_RenderPresent(aps.render);
-            }
-            cnt++;
-        }
+    if(initAppState(&aps,&rs)){
+        return -1;
     }
-    SDL_WaitThread(x,NULL);
+
+    STAGE menu,game;
+    stage_menu_init(&rs,&menu);
+    blockGameStageInit(&rs,&game);
+
+    aps.menu=&menu;
+    aps.game=&game;
+    if(app_run(&rs,&menu)){
+        SDL_Log("有错误%s",SDL_GetError());
+    }
+    
+    //SDL_WaitThread(x,NULL);
     releaseAppState(&aps);
     TTF_Quit();
     SDL_Quit();
     return 0;
 }
-
-
-
-const char *const fontname[]={
-"/usr/share/fonts/SpaceMono-Regular.ttf",
-"/usr/share/fonts/gnu-free/FreeMono.otf",
-"/usr/share/fonts/noto-cjk/NotoSerifCJK-ExtraLight.ttc",
-"/usr/share/fonts/SpaceMono-Bold.ttf",
-"/usr/share/fonts/SpaceMono-BoldItalic.ttf",
-"/usr/share/fonts/SpaceMono-Italic.ttf",
-"/usr/share/fonts/德彪钢笔行书字库(3月9日更新).ttf",
-"/usr/share/imlib2/data/fonts/notepad.ttf",
-"/usr/share/fonts/noto/NotoColorEmoji.ttf",
-"/usr/share/fonts/汉堡包手机字体.ttf",
-"/usr/share/fonts/gnu-free/FreeMonoOblique.otf",
-"/usr/share/fonts/落落-卿本佳人.ttf",
-"/usr/share/fonts/gnu-free/FreeMonoBold.otf",
-"/usr/share/fonts/gnu-free/FreeMonoBoldOblique.otf",
-"/usr/share/feh/fonts/yudit.ttf",
-"/usr/share/ppsspp/assets/Roboto-Condensed.ttf",
-"/usr/share/vlc/skins2/fonts/FreeSansBold.ttf",
-"/usr/share/vlc/skins2/fonts/FreeSans.ttf",
-"/usr/share/fonts/noto-cjk/NotoSansCJK-Light.ttc",
-"/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
-"/usr/share/fonts/noto-cjk/NotoSerifCJK-Bold.ttc",
-"/usr/share/fonts/noto-cjk/NotoSansCJK-Bold.ttc",
-"/usr/share/fonts/noto-cjk/NotoSerifCJK-Regular.ttc",
-"/usr/share/fonts/noto-cjk/NotoSerifCJK-Black.ttc",
-"/usr/share/fonts/noto-cjk/NotoSansCJK-DemiLight.ttc",
-"/usr/share/fonts/noto-cjk/NotoSansCJK-Thin.ttc",
-"/usr/share/fonts/noto-cjk/NotoSerifCJK-Light.ttc",
-"/usr/share/fonts/noto-cjk/NotoSerifCJK-Medium.ttc",
-"/usr/share/fonts/noto-cjk/NotoSerifCJK-SemiBold.ttc",
-"/usr/share/fonts/noto-cjk/NotoSansCJK-Medium.ttc",
-"/usr/share/fonts/noto-cjk/NotoSansCJK-Black.ttc",
-"/usr/share/imlib2/data/fonts/cinema.ttf",
-"/usr/share/fonts/cantarell/Cantarell-VF.otf",
-"/usr/share/imlib2/data/fonts/morpheus.ttf"
-};
-/*
-// 每秒60帧
-SDL_AppResult SDL_AppIterate(void *appstate)
+int main(int argc,char **argv)
 {
-    struct APPSTATE *aps=appstate;
-    Uint64 now= SDL_GetTicks();
-    if(now - aps->tick >fps ){
-        aps->tick=now;
-        const uint64_t base=now / fps;
-        SDL_SetRenderDrawColor(aps->render,base & 0xff,0xff - (base & 0xff),(base + 127) & 0xff,0xff);
-        SDL_RenderClear(aps->render);
-        SDL_FRect dst={(aps->winsize.x-AREA_W)/2,(aps->winsize.y-AREA_H)/2,AREA_W,AREA_H};
-        SDL_RenderTexture(aps->render,aps->texture,NULL,&dst);
-        //SDL_RenderTextureTiled(aps->render,aps->texture,NULL,1.,NULL);
-        SDL_RenderPresent(aps->render);
+    int opt;
+    setlocale(LC_ALL,"");
+    while((opt=getopt(argc,argv,"t:"))!=-1){
+        switch(opt){
+        case 't':
+        //test_pcf("/usr/share/fonts/wenquanyi/wenquanyi_13px.pcf");
+        return 0;
+        case '?':
+        wprintf(L"wrong arguments\n");
+        return 0;
+        }
     }
-    return SDL_APP_CONTINUE;
+    return app();
 }
-void SDL_AppQuit(void *appstate,SDL_AppResult result)
-{
-    struct APPSTATE *aps=appstate;
-    SDL_DestroyTexture(aps->texture);
-    free(appstate);
-}
-*/

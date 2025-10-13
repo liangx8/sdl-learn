@@ -15,6 +15,7 @@ int cpl_render_ascii(SDL_Renderer *ren,struct TEXTURE_ASCII *tasc,const char *te
         int idx=*ptr-base;
         src.x=idx * tasc->w;
         if(SDL_RenderCopy(ren,tasc->texture,&src,&dst)){
+            SDL_Log("cpl_render_ascii() error %s",SDL_GetError());
             return -1;
         }
         dst.x += tasc->w;

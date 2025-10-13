@@ -7,9 +7,6 @@
             "label": "BUILD",
             "type": "shell",
             "command": "make",
-            "options": {
-                "cwd": "${workspaceFolder}/src"
-            },
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -18,6 +15,7 @@
                 // Reveal the output only if unrecognized errors occur.
                 "reveal": "silent"
             },
+            "options": {"cwd": "${workspaceFolder}/src"},
             // Use the standard MS compiler pattern to detect errors, warnings and infos
             "problemMatcher": "$gcc"
         },
@@ -25,12 +23,10 @@
             "label": "CLEAN",
             "type": "shell",
             "command": "make",
+            "options": {"cwd": "${workspaceFolder}/src"},
             "args": [
                 "clean"
             ],
-            "options": {
-                "cwd": "${workspaceFolder}/src"
-            },
             "presentation": {
                 "echo": true,
                 "reveal": "always",
@@ -46,7 +42,7 @@
             "type": "shell",
             "command": "make",
             "args": [
-                "OPTS=-g"
+                "OPTC=-g"
             ],
             "options": {
                 "cwd": "${workspaceFolder}/src"

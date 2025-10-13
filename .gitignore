@@ -1,4 +1,4 @@
-*.o
-sdl
-*.txt
+src/*.o
+src/sdl
+src/listfont.c
 *.html

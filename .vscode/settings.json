@@ -12,6 +12,10 @@
         "game.h": "c",
         "sdl_main.h": "c",
         "appstate.h": "c",
-        "cpl.h": "c"
+        "cpl.h": "c",
+        "charconv": "c",
+        "appres.h": "c",
+        "abc.h": "c",
+        "game_block.h": "c"
     }
 }
