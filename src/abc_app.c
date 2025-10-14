@@ -11,7 +11,7 @@ int switch_stage(STAGE *next)
     return 0;
 
 }
-const Uint32 FP=1000/30;
+const Uint32 FP=1000/60;
 #define ERR_EXIT(x) if(x) goto err_exit
 /**
  * @brief app_run() must run in thread what initial video

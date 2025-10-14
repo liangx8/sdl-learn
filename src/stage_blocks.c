@@ -243,9 +243,18 @@ int block_game_up(void *_)
 {
     Uint8 blocks[16];
     if(game_block_rotate(blocks)){
-        return -1;
+        // 转不了
+        return 0;
     }
     MINUS_ERR(clean_blocks(bd.curPos,blocks));
+    MINUS_ERR(play_update());
+    return 0;
+}
+int block_game_drop(void *_)
+{
+    int oldPos=bd.curPos;
+    game_block_drop();
+    MINUS_ERR(clean_blocks(oldPos,bd.blocks));
     MINUS_ERR(play_update());
     return 0;
 }
@@ -263,6 +272,7 @@ int blg_action_attach(MAP map)
     map_set(map,SDLK_LEFT,block_game_left);
     map_set(map,SDLK_RIGHT,block_game_right);
     map_set(map,SDLK_UP,block_game_up);
+    map_set(map,SDLK_SPACE,block_game_drop);
     game_block_start();
     preview_update();
 #if 1
@@ -320,9 +330,9 @@ int blockGameStageInit(RUNSTATE *rs,STAGE *stage){
     struct GRID_PARAM gp;
 
     gs.bgcolor.a=0xff;
-    gs.bgcolor.r=0xaa;
-    gs.bgcolor.g=0xbb;
-    gs.bgcolor.b=0xcc;
+    gs.bgcolor.r=0xea;
+    gs.bgcolor.g=0xea;
+    gs.bgcolor.b=0xea;
     SDL_memcpy4(&gp.bgcolor,&gs.bgcolor,1);
     gp.gridsize=gs.blocksize;
     gs.blankBackground=cpl_create_texture_paint_pixels(rs->ren,gs.gameLayer.w,gs.gameLayer.h,grid_texture_callback,&gp);

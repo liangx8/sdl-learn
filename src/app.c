@@ -85,7 +85,7 @@ int initAppState(APPRES *ptr,RUNSTATE *rs)
         int r= color & 0xff;
         int g= (color >> 8) & 0xff;
         int b= (color >> 16) & 0xff;
-        if((r< 50) && (g < 50) && (b < 50)) goto again;
+        if((r> 200) && (g > 200) && (b > 200)) goto again;
         ptr->colors[ix]=color | 0xff000000;
     }
     const int wi=rs->dm.w-MAIN_SCREEN_MARGIN_H;

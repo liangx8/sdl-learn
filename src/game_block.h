@@ -19,6 +19,7 @@ struct BLOCK_DATA{
 int  game_block_next(void);
 void game_block_start(void);
 int  game_block_fall(void);
+int  game_block_drop(void);
 int  game_block_left(void);
 int  game_block_right(void);
 int  game_block_rotate(Uint8 []);

@@ -155,6 +155,23 @@ int game_block_fall(void)
     return 0;
 }
 /**
+ * @brief 直接到底
+ */
+int game_block_drop(void)
+{
+    int bx=bd.curPos % COL_CNT;
+    int ax=(ROW_CNT-1)*COL_CNT+bx;
+    while(1){
+        if(isBBB(ax,bd.blocks)){
+            ax = ax-COL_CNT;
+            continue;
+        }
+        break;
+    }
+    bd.curPos=ax;
+    return 0;
+}
+/**
  * @brief 左移动
  * @return 0 左移动成功, -1被堵住
  */
