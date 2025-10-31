@@ -11,6 +11,10 @@ int switch_stage(STAGE *next)
     return 0;
 
 }
+
+int joystick_buttom(SDL_JoyButtonEvent *ev);
+int joystick_axis(SDL_JoyAxisEvent *ev);
+int joystick_hat(SDL_JoyHatEvent *ev);
 const Uint32 FP=1000/60;
 #define ERR_EXIT(x) if(x) goto err_exit
 /**
@@ -52,8 +56,24 @@ int app_run(RUNSTATE *rs,STAGE *start)
                 //     SDL_Log("win event:%04x,type: %04x,data1:%d,data2:%d",ev.window.event,ev.window.type,ev.window.data1,ev.window.data2);
                 }
                 break;
+                case SDL_JOYAXISMOTION:
+                    joystick_axis(&ev.jaxis);
+                    break;
+                case SDL_JOYBUTTONDOWN:
+                case SDL_JOYBUTTONUP:
+                    joystick_buttom(&ev.jbutton);
+                    break;
+                case SDL_JOYHATMOTION:
+                    joystick_hat(&ev.jhat);
+                    break;
+                case SDL_JOYDEVICEADDED:
+                SDL_Log("joy stick add");
+                break;
+                case SDL_JOYDEVICEREMOVED:
+                SDL_Log("joy stick remove");
+                break;
                 default:
-                //SDL_Log("unhandle event:%04x",ev.type);
+                //SDL_Log("unhandle event:%04x/%d",ev.type,ev.type);
                 break;
             }
         }

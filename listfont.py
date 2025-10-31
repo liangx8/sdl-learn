@@ -83,7 +83,7 @@ def putx(name,out,lists):
         endWith=",\n"
         if seq == cnt-1:
             endWith="};\n"
-        print('"{}"'.format(lists[seq]),file=out,end=endWith)
+        print('    "{}"'.format(lists[seq]),file=out,end=endWith)
 
 if __name__=="__main__":
     aa=font()

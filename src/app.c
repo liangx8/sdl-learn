@@ -181,14 +181,18 @@ typedef struct SDL_KeyboardEvent
     SDL_Keysym keysym;  **< The key that was pressed or released *
 } SDL_KeyboardEvent;
 */
+int threadJoystick(void *pl);
 
 int stage_menu_init(RUNSTATE *,STAGE *);
 int blockGameStageInit(RUNSTATE *rs,STAGE *);
+
 int app(void)
 {
     APPRES aps;
     RUNSTATE rs;
-    if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER)){
+    SDL_Thread *thd;
+    
+    if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_JOYSTICK)){
         SDL_Log("initial error %s",SDL_GetError());
         return -1;
     }
@@ -206,14 +210,13 @@ int app(void)
     STAGE menu,game;
     stage_menu_init(&rs,&menu);
     blockGameStageInit(&rs,&game);
-
+    thd = SDL_CreateThread(threadJoystick,"joy stick",&rs);
     aps.menu=&menu;
     aps.game=&game;
     if(app_run(&rs,&menu)){
         SDL_Log("有错误%s",SDL_GetError());
     }
-    
-    //SDL_WaitThread(x,NULL);
+    SDL_WaitThread(thd,NULL);
     releaseAppState(&aps);
     TTF_Quit();
     SDL_Quit();
