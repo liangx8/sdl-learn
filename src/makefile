@@ -19,9 +19,11 @@ LDFLAGS+=-lSDL2_ttf
 all:${TARGET}
 	@echo "*** Done ***"
 ${TARGET}:${OBJS}
-	${CC} -o $@ ${OBJS} ${LDFLAGS}
+	$(file >$@.in) $(foreach O,$^,$(file >>$@.in,$O))
+	${CC} @$@.in ${LDFLAGS} -o $@
+	@rm $@.in
 clean:
 	${RM} ${TARGET} *~ *.o
 
 .c.o:
-	${CC} -c $< -o $@ ${CFLAGS}
+	${CC} ${CFLAGS} -c $<
