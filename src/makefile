@@ -1,29 +1,36 @@
-.PHONY: clean
-CC=gcc
-RM=rm -rf
-CFLAGS=-Wall
-TARGET=sdl
+.PHONY: all clean
 
-ifeq (${OPTC}X,X)
-	CFLAGS+=-O2
+CC := gcc
+RM := rm -rf
+TARGET := sdl
+
+# Optional optimization/flags from command line: make OPTC=-g
+CFLAGS := -Wall -Wextra -std=c11
+ifeq ($(OPTC),)
+CFLAGS += -O2
 else
-	CFLAGS+=${OPTC}
+CFLAGS += $(OPTC)
 endif
 
-SRCS=${wildcard *.c}
-OBJS=${SRCS:.c=.o}
-LDFLAGS =-Wall
-LDFLAGS+=-lSDL2
-LDFLAGS+=-lSDL2_ttf
+# Hardcoded SDL2 include and link flags.
+# Adjust these paths if SDL2 is installed in a custom location.
+SDL_CFLAGS := -I/usr/include/SDL2
+SDL_LDFLAGS := -L/usr/lib -lSDL2 -lSDL2_ttf
 
-all:${TARGET}
-	@echo "*** Done ***"
-${TARGET}:${OBJS}
-	$(file >$@.in) $(foreach O,$^,$(file >>$@.in,$O))
-	${CC} @$@.in ${LDFLAGS} -o $@
-	@rm $@.in
+CFLAGS += $(SDL_CFLAGS)
+LDFLAGS := $(SDL_LDFLAGS)
+
+SRCS := $(wildcard *.c)
+OBJS := $(SRCS:.c=.o)
+
+all: $(TARGET)
+	@echo "Build complete: $(TARGET)"
+
+$(TARGET): $(OBJS)
+	$(CC) $(OBJS) $(LDFLAGS) -o $@
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
 clean:
-	${RM} ${TARGET} *~ *.o
-
-.c.o:
-	${CC} ${CFLAGS} -c $<
+	$(RM) $(TARGET) $(OBJS)
