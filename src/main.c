@@ -1,11 +1,11 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include "font_func.h"
+#include "app_err.h"
+#include "app_mode.h"
 
 static const int WINDOW_WIDTH = 800;
 static const int WINDOW_HEIGHT = 600;
-static const char *FONT_PATH = "/usr/share/fonts/noto-cjk/NotoSerifCJK-Regular.ttc";
-static const int FONT_SIZE = 48;
 static const char *WELCOME_TEXT = "SDL2 例程";
 
 int shutdown(void)
@@ -13,29 +13,31 @@ int shutdown(void)
     SDL_Event event;
     event.type = SDL_QUIT;
     if (SDL_PushEvent(&event) != 1) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_PushEvent Error: %s", SDL_GetError());
+        app_err_push(__FILE__, __LINE__, "SDL_PushEvent Error: %s", SDL_GetError());
         return 1;
     }
     return 0;
 }
+
+extern const AbstractModeVTable sample_mode_vtable;
 int main(int argc, char *argv[])
 {
     (void)argc;
     (void)argv;
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init Error: %s", SDL_GetError());
+        app_err_push(__FILE__, __LINE__, "SDL_Init Error: %s", SDL_GetError());
         return 1;
     }
 
     if (TTF_Init() != 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "TTF_Init Error: %s", TTF_GetError());
+        app_err_push(__FILE__, __LINE__, "TTF_Init Error: %s", TTF_GetError());
         SDL_Quit();
         return 1;
     }
 
     SDL_Window *window = SDL_CreateWindow(
-        "SDL2 例程",
+        WELCOME_TEXT,
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         WINDOW_WIDTH,
@@ -44,7 +46,7 @@ int main(int argc, char *argv[])
     );
 
     if (!window) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_CreateWindow Error: %s", SDL_GetError());
+        app_err_push(__FILE__, __LINE__, "SDL_CreateWindow Error: %s", SDL_GetError());
         TTF_Quit();
         SDL_Quit();
         return 1;
@@ -52,77 +54,40 @@ int main(int argc, char *argv[])
 
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!renderer) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_CreateRenderer Error: %s", SDL_GetError());
+        app_err_push(__FILE__, __LINE__, "SDL_CreateRenderer Error: %s", SDL_GetError());
         SDL_DestroyWindow(window);
         TTF_Quit();
         SDL_Quit();
         return 1;
     }
-    SDL_Color white = {255, 255, 255, 255};
-    SDL_Texture *textTexture = create_texture_by_string(renderer, FONT_PATH, FONT_SIZE, WELCOME_TEXT, white);
-    if (!textTexture) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "create_texture_by_string failed");
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        TTF_Quit();
-        SDL_Quit();
-        return 1;
-    }
-
-    SDL_Rect textRect;
-    if (SDL_QueryTexture(textTexture, NULL, NULL, &textRect.w, &textRect.h) != 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_QueryTexture Error: %s", SDL_GetError());
-        SDL_DestroyTexture(textTexture);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        TTF_Quit();
-        SDL_Quit();
-        return 1;
-    }
-    textRect.x = (WINDOW_WIDTH - textRect.w) / 2;
-    textRect.y = (WINDOW_HEIGHT - textRect.h) / 2;
-
-    NUMBER_TEMPLATE *counterTemplate = number_template(renderer, &white, 32);
-    if (!counterTemplate) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "number_template failed");
-        SDL_DestroyTexture(textTexture);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        TTF_Quit();
-        SDL_Quit();
-        return 1;
-    }
-
-    Uint32 lastTick = SDL_GetTicks();
-    int counter = 0;
-    int running = 1;
-    while (running) {
+    APP_MODE mode = {
+        .vtable = &sample_mode_vtable,
+        .window = window,
+        .renderer = renderer
+    };
+    void *mode_data = sample_mode_vtable.init(&mode);
+    while (1) {
         SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                running = 0;
-            }
+        if (SDL_WaitEvent(&event)==0) {
+            app_err_push(__FILE__, __LINE__, "SDL_WaitEvent Error: %s", SDL_GetError());
+            break;
         }
-
-        Uint32 now = SDL_GetTicks();
-        if (now - lastTick >= 1000) {
-            lastTick = now;
-            counter += 1;
+        if (event.type == SDL_QUIT) {
+            break;
         }
-
-        SDL_SetRenderDrawColor(renderer, 0, 120, 215, 255);
+        if (mode.vtable->event(&mode, &event, mode_data) != 0) {
+            app_err_push(__FILE__, __LINE__, "Mode event handler error");
+            break;
+        }
         SDL_RenderClear(renderer);
-        SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
-        if (render_number(renderer, counterTemplate, counter, 20, 20) != 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "render_number failed");
-            running = 0;
+        if (mode.vtable->render(&mode, mode_data) != 0) {
+            app_err_push(__FILE__, __LINE__, "Mode render handler error");
+            break;
         }
         SDL_RenderPresent(renderer);
-        SDL_Delay(16);
     }
-
-    destroy_number_template(counterTemplate);
-    SDL_DestroyTexture(textTexture);
+    mode.vtable->destroy(&mode, mode_data);
+    err_stack_print();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     TTF_Quit();

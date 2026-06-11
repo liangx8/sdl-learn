@@ -12,17 +12,16 @@ extern "C" {
 typedef struct _APP_MODE APP_MODE;
 
 typedef struct AbstractModeVTable {
-    void (*init)(APP_MODE *mode);
-    void (*event)(APP_MODE *mode, SDL_Event *event);
-    void (*render)(APP_MODE *mode);
-    void (*shutdown)(APP_MODE *mode);
+    void* (*init)(APP_MODE *mode);
+    int (*event)(APP_MODE *mode, SDL_Event *event,void *data);
+    int (*render)(APP_MODE *mode,void *data);
+    int (*destroy)(APP_MODE *mode, void *data);
 } AbstractModeVTable;
 
 struct _APP_MODE {
     const AbstractModeVTable *vtable;
     SDL_Window *window;
     SDL_Renderer *renderer;
-    void *userdata;
 };
 
 

@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include "font_func.h"
+#include "app_err.h"
 
 /**
  * @file font_func.c
@@ -24,31 +25,31 @@ const char *mono_font_path = "/usr/share/fonts/noto/NotoSansMono-Medium.ttf";
  * @param color     Color to render the text in.
  * @return A pointer to a newly created SDL_Texture on success (caller must
  *         destroy with SDL_DestroyTexture). Returns NULL on error and logs
- *         the failure via SDL_LogError.
+ *         the failure via app_err_push.
  */
 SDL_Texture *create_texture_by_string(SDL_Renderer *renderer, const char *font_path, int size, const char *text, SDL_Color color)
 {
     if (!renderer || !font_path || !text || size <= 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "create_texture_by_string: invalid arguments");
+        app_err_push(__FILE__, __LINE__, "create_texture_by_string: invalid arguments");
         return NULL;
     }
 
     TTF_Font *font = TTF_OpenFont(font_path, size);
     if (!font) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "TTF_OpenFont Error: %s", TTF_GetError());
+        app_err_push(__FILE__, __LINE__, "TTF_OpenFont Error: %s", TTF_GetError());
         return NULL;
     }
 
     SDL_Surface *surface = TTF_RenderUTF8_Blended(font, text, color);
     if (!surface) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "TTF_RenderUTF8_Blended Error: %s", TTF_GetError());
+        app_err_push(__FILE__, __LINE__, "TTF_RenderUTF8_Blended Error: %s", TTF_GetError());
         TTF_CloseFont(font);
         return NULL;
     }
 
     SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
     if (!texture) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_CreateTextureFromSurface Error: %s", SDL_GetError());
+        app_err_push(__FILE__, __LINE__, "SDL_CreateTextureFromSurface Error: %s", SDL_GetError());
     }
 
     SDL_FreeSurface(surface);
@@ -57,7 +58,7 @@ SDL_Texture *create_texture_by_string(SDL_Renderer *renderer, const char *font_p
 }
 NUMBER_TEMPLATE *number_template(SDL_Renderer *renderer,const SDL_Color *color,int size){
     if (!renderer || !color || size <= 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "number_template: invalid arguments");
+        app_err_push(__FILE__, __LINE__, "number_template: invalid arguments");
         return NULL;
     }
 
@@ -69,20 +70,20 @@ NUMBER_TEMPLATE *number_template(SDL_Renderer *renderer,const SDL_Color *color,i
     int tex_w = 0;
     int tex_h = 0;
     if (SDL_QueryTexture(texture, NULL, NULL, &tex_w, &tex_h) != 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_QueryTexture Error: %s", SDL_GetError());
+        app_err_push(__FILE__, __LINE__, "SDL_QueryTexture Error: %s", SDL_GetError());
         SDL_DestroyTexture(texture);
         return NULL;
     }
 
     if (tex_w <= 0 || tex_h <= 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "number_template: invalid texture dimensions");
+        app_err_push(__FILE__, __LINE__, "number_template: invalid texture dimensions");
         SDL_DestroyTexture(texture);
         return NULL;
     }
 
     NUMBER_TEMPLATE *tmpl = (NUMBER_TEMPLATE *)SDL_malloc(sizeof(NUMBER_TEMPLATE));
     if (!tmpl) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "number_template: allocation failed");
+        app_err_push(__FILE__, __LINE__, "number_template: allocation failed");
         SDL_DestroyTexture(texture);
         return NULL;
     }
@@ -115,19 +116,19 @@ void destroy_number_template(NUMBER_TEMPLATE *tmpl){
  */
 int render_number(SDL_Renderer *renderer,const NUMBER_TEMPLATE *tmpl,int number,int x,int y){
     if (!renderer || !tmpl || number < 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "render_number: invalid arguments");
+        app_err_push(__FILE__, __LINE__, "render_number: invalid arguments");
         return -1;
     }
 
     if (!tmpl->texture || tmpl->digit_width <= 0 || tmpl->digit_height <= 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "render_number: invalid template");
+        app_err_push(__FILE__, __LINE__, "render_number: invalid template");
         return -1;
     }
 
     char digits[32];
     int length = SDL_snprintf(digits, sizeof(digits), "%d", number);
     if (length <= 0 || length >= (int)sizeof(digits)) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "render_number: invalid number conversion");
+        app_err_push(__FILE__, __LINE__, "render_number: invalid number conversion");
         return -1;
     }
 
@@ -142,7 +143,7 @@ int render_number(SDL_Renderer *renderer,const NUMBER_TEMPLATE *tmpl,int number,
         SDL_Rect dst = { x + i * tmpl->digit_width, y, tmpl->digit_width, tmpl->digit_height };
 
         if (SDL_RenderCopy(renderer, tmpl->texture, &src, &dst) != 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_RenderCopy Error: %s", SDL_GetError());
+            app_err_push(__FILE__, __LINE__, "SDL_RenderCopy Error: %s", SDL_GetError());
             return -1;
         }
     }
