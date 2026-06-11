@@ -8,6 +8,16 @@ static const char *FONT_PATH = "/usr/share/fonts/noto-cjk/NotoSerifCJK-Regular.t
 static const int FONT_SIZE = 48;
 static const char *WELCOME_TEXT = "SDL2 例程";
 
+int shutdown(void)
+{
+    SDL_Event event;
+    event.type = SDL_QUIT;
+    if (SDL_PushEvent(&event) != 1) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_PushEvent Error: %s", SDL_GetError());
+        return 1;
+    }
+    return 0;
+}
 int main(int argc, char *argv[])
 {
     (void)argc;
