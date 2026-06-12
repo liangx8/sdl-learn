@@ -17,9 +17,12 @@ typedef struct AbstractModeVTable {
     int (*render)(APP_MODE *mode,void *data);
     int (*destroy)(APP_MODE *mode, void *data);
 } AbstractModeVTable;
-
-struct _APP_MODE {
+struct MODE_BIND{
     const AbstractModeVTable *vtable;
+    void *data;
+};
+struct _APP_MODE {
+    struct MODE_BIND *mode_bind;
     SDL_Window *window;
     SDL_Renderer *renderer;
 };

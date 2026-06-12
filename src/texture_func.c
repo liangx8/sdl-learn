@@ -1,32 +1,64 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
-#include "font_func.h"
 #include "app_err.h"
+#include "texture_func.h"
 
-/**
- * @file font_func.c
- * @brief Implementations of helpers that render UTF-8 text via SDL_ttf.
- */
+SDL_Texture* create_texture_paint_pixels(SDL_Renderer *ren, int w, int h,
+                                         texture_paint_callback pt, void *param)
+{
+    // 回调函数中的pitch是y轴的字节数，因为每像素要用rgba来描述，所以要４字节
+    SDL_Texture *ttr=SDL_CreateTexture(ren,SDL_PIXELFORMAT_RGBA8888,SDL_TEXTUREACCESS_STREAMING,w,h);
+    SDL_Log("创建Texture(width:%d,height:%d)",w,h);
+    char *pixels;
+    int pitch;
+    if(ttr==NULL){
+        app_err_push(__FILE__, __LINE__, "SDL_CreateTexture Error: %s", SDL_GetError());
+        return NULL;
+    }
+    if(SDL_LockTexture(ttr,NULL,(void **)&pixels,&pitch)){
+        app_err_push(__FILE__, __LINE__, "SDL_LockTexture Error: %s", SDL_GetError());
+        SDL_DestroyTexture(ttr);
+        return NULL;
+    }
+    if(pt(pixels,h,pitch,param)){
+        app_err_push(__FILE__, __LINE__, "create_texture_paint_pixels callback failed");
+        SDL_UnlockTexture(ttr);
+        SDL_DestroyTexture(ttr);
+        return NULL;
+    }
+    SDL_UnlockTexture(ttr);
+    return ttr;
+}
 
-const char *mono_font_path = "/usr/share/fonts/noto/NotoSansMono-Medium.ttf";
+int grid_texture_callback(char *pixels,int h,int pitch,void *param)
+{
+    struct GRID_PARAM *gp=(struct GRID_PARAM *)param;
+    SDL_Log("high:%d,pitch:%d\n",h,pitch);
+    const int cols=pitch/4;
+    for(int iy=0;iy<h;iy++){
+        char *row=pixels+iy*pitch;
+        for(int ix=0;ix<cols;ix++){
+            char *ptr=row+ix*4;
+            char lc=0;
+            if(iy % gp->gridsize ==0){
+                lc=20;
+            }
+            if(ix % gp->gridsize ==0){
+                lc=20;
+            }
+            *ptr= 0xff;
+            *(ptr+1)=gp->bgcolor.r - lc;
+            *(ptr+2)=gp->bgcolor.g - lc;
+            *(ptr+3)=gp->bgcolor.b - lc;
+        }
+    }
+    return 0;
+}
+
+// fonts
 
 
-/**
- * Create an SDL_Texture from UTF-8 text using the given renderer and color.
- *
- * This function opens the font at @p font_path with the requested @p size,
- * renders @p text to a temporary surface and converts it to a texture via the
- * supplied @p renderer.
- *
- * @param renderer  The SDL_Renderer used to create the texture.
- * @param font_path Path to a TrueType font file (TTF/OTF).
- * @param size      Font point size to use when rendering.
- * @param text      UTF-8 encoded NUL-terminated string to render.
- * @param color     Color to render the text in.
- * @return A pointer to a newly created SDL_Texture on success (caller must
- *         destroy with SDL_DestroyTexture). Returns NULL on error and logs
- *         the failure via app_err_push.
- */
+
 SDL_Texture *create_texture_by_string(SDL_Renderer *renderer, const char *font_path, int size, const char *text, SDL_Color color)
 {
     if (!renderer || !font_path || !text || size <= 0) {
@@ -56,13 +88,14 @@ SDL_Texture *create_texture_by_string(SDL_Renderer *renderer, const char *font_p
     TTF_CloseFont(font);
     return texture;
 }
-NUMBER_TEMPLATE *number_template(SDL_Renderer *renderer,const SDL_Color *color,int size){
-    if (!renderer || !color || size <= 0) {
+
+NUMBER_TEMPLATE *number_template(SDL_Renderer *renderer,const char *font_path, const SDL_Color *color,int size){
+    if (!renderer || !font_path || !color || size <= 0) {
         app_err_push(__FILE__, __LINE__, "number_template: invalid arguments");
         return NULL;
     }
 
-    SDL_Texture *texture = create_texture_by_string(renderer, mono_font_path, size, "0123456789", *color);
+    SDL_Texture *texture = create_texture_by_string(renderer, font_path, size, "0123456789=+-", *color);
     if (!texture) {
         return NULL;
     }
@@ -89,7 +122,7 @@ NUMBER_TEMPLATE *number_template(SDL_Renderer *renderer,const SDL_Color *color,i
     }
 
     tmpl->texture = texture;
-    tmpl->digit_width = tex_w / 10;
+    tmpl->digit_width = tex_w / 13; // 10 digits + '+' + '=' + '-'
     tmpl->digit_height = tex_h;
     return tmpl;
 }
@@ -104,16 +137,7 @@ void destroy_number_template(NUMBER_TEMPLATE *tmpl){
     SDL_free(tmpl);
 }
 
-/**
- * Render a non-negative integer to the current renderer using the digit template.
- *
- * @param renderer The SDL_Renderer to draw onto.
- * @param tmpl     The NUMBER_TEMPLATE returned by number_template().
- * @param number   The integer to render; must be >= 0.
- * @param x        The x coordinate of the left edge of the rendered number.
- * @param y        The y coordinate of the top edge of the rendered number.
- * @return 0 on success, -1 on error.
- */
+
 int render_number(SDL_Renderer *renderer,const NUMBER_TEMPLATE *tmpl,int number,int x,int y){
     if (!renderer || !tmpl || number < 0) {
         app_err_push(__FILE__, __LINE__, "render_number: invalid arguments");

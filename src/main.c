@@ -1,13 +1,16 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
-#include "font_func.h"
 #include "app_err.h"
 #include "app_mode.h"
 
 static const int WINDOW_WIDTH = 800;
 static const int WINDOW_HEIGHT = 600;
-static const char *WELCOME_TEXT = "SDL2 例程";
+static const char *WELCOME_TEXT = "SDL2 例程🌍";
 
+extern const AbstractModeVTable sample_mode_vtable;
+struct MODE_BIND mode_bind[1] = {
+    { .vtable = &sample_mode_vtable, .data = NULL }
+};
 int shutdown(void)
 {
     SDL_Event event;
@@ -19,7 +22,9 @@ int shutdown(void)
     return 0;
 }
 
-extern const AbstractModeVTable sample_mode_vtable;
+
+
+
 int main(int argc, char *argv[])
 {
     (void)argc;
@@ -61,11 +66,14 @@ int main(int argc, char *argv[])
         return 1;
     }
     APP_MODE mode = {
-        .vtable = &sample_mode_vtable,
+        .mode_bind = &mode_bind[0],
         .window = window,
         .renderer = renderer
     };
-    void *mode_data = sample_mode_vtable.init(&mode);
+    for(unsigned int ix=0;ix<sizeof(mode_bind)/sizeof(mode_bind[0]);ix++) {
+        mode_bind[ix].data = mode_bind[ix].vtable->init(&mode);
+    }
+    
     while (1) {
         SDL_Event event;
         if (SDL_WaitEvent(&event)==0) {
@@ -75,18 +83,21 @@ int main(int argc, char *argv[])
         if (event.type == SDL_QUIT) {
             break;
         }
-        if (mode.vtable->event(&mode, &event, mode_data) != 0) {
+        if(mode.mode_bind->vtable->event(&mode, &event, mode.mode_bind->data) != 0) {
             app_err_push(__FILE__, __LINE__, "Mode event handler error");
             break;
         }
+
         SDL_RenderClear(renderer);
-        if (mode.vtable->render(&mode, mode_data) != 0) {
+        if (mode.mode_bind->vtable->render(&mode, mode.mode_bind->data) != 0) {
             app_err_push(__FILE__, __LINE__, "Mode render handler error");
             break;
         }
         SDL_RenderPresent(renderer);
     }
-    mode.vtable->destroy(&mode, mode_data);
+    for(unsigned int ix=0;ix<sizeof(mode_bind)/sizeof(mode_bind[0]);ix++) {
+        mode_bind[ix].vtable->destroy(&mode, mode_bind[ix].data);
+    }
     err_stack_print();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
