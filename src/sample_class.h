@@ -5,6 +5,7 @@
 typedef struct _class_data{
     int operand[2];
     char op;
+    int answer;
 } CLASS_DATA;
 
 void populate_random_class1(CLASS_DATA *data);

@@ -39,6 +39,23 @@ typedef int (*texture_paint_callback)(char *pixels, int h, int pitch, void *para
 SDL_Texture *create_texture_paint_pixels(SDL_Renderer *ren, int w, int h,
                                         texture_paint_callback pt, void *param);
 
+/**
+ * @brief Example callback that paints a solid color rectangle onto the texture.
+ * @param pixels Pointer to the pixel buffer of the texture.
+ * @param h Height of the texture in pixels.
+ * @param pitch Number of bytes in a single row of the texture (width * 4 for RGBA8888).
+ * @param param Pointer to an `SDL_Color` struct that defines the rectangle color.
+ * @return 0 on success, non-zero on failure.
+ */
+int rect_texture_callback(char *pixels,int h,int pitch,void *param);                                        
+/**
+ * @brief Example callback that paints a grid pattern onto the texture.
+ * @param pixels Pointer to the pixel buffer of the texture.
+ * @param h Height of the texture in pixels.
+ * @param pitch Number of bytes in a single row of the texture (width * 4 for RGBA8888).
+ * @param param Pointer to a `GRID_PARAM` struct that defines the grid size and background color.
+ * @return 0 on success, non-zero on failure.
+ */
 int grid_texture_callback(char *pixels, int h, int pitch, void *param);
 
 /**
@@ -99,6 +116,16 @@ void destroy_number_template(NUMBER_TEMPLATE *tmpl);
  */
 int render_number(SDL_Renderer *renderer, const NUMBER_TEMPLATE *tmpl, int number, int x, int y);
 
+/**
+ * @brief Render a single symbol at the specified screen position using a digit template. Supported symbols are '0'-'9', '+', '-', and '='.
+ * @param renderer The SDL_Renderer used to draw the symbol.
+ * @param tmpl The NUMBER_TEMPLATE returned by number_template().
+ * @param symbol The character to render. Supported symbols are '0'-'9', '+', '-', and '='.
+ * @param x The x coordinate of the left edge of the rendered symbol.
+ * @param y The y coordinate of the top edge of the rendered symbol.
+ * @return 0 on success, or -1 on error.
+ */
+int render_symbol(SDL_Renderer *renderer, const NUMBER_TEMPLATE *tmpl, char symbol, int x, int y);
 #ifdef __cplusplus
 }
 #endif

@@ -54,7 +54,25 @@ int grid_texture_callback(char *pixels,int h,int pitch,void *param)
     }
     return 0;
 }
-
+int rect_texture_callback(char *pixels,int h,int pitch,void *param)
+{
+    SDL_Color *color=(SDL_Color*)param;
+    for(int iy=0;iy<h;iy++){
+        // if(iy & 1) continue;
+        for(int ix=0;ix<pitch;ix=ix+4)
+        {
+            char *ptr=pixels+iy*pitch+ix;
+            *ptr=color->a;
+            ptr++;
+            *ptr=color->r;
+            ptr++;
+            *ptr=color->g;
+            ptr++;
+            *ptr=color->b;
+        }
+    }
+    return 0;
+}
 // fonts
 
 
@@ -136,7 +154,39 @@ void destroy_number_template(NUMBER_TEMPLATE *tmpl){
     }
     SDL_free(tmpl);
 }
+int render_symbol(SDL_Renderer *renderer,const NUMBER_TEMPLATE *tmpl,char symbol,int x,int y){
+    if (!renderer || !tmpl) {
+        app_err_push(__FILE__, __LINE__, "render_symbol: invalid arguments");
+        return -1;
+    }
 
+    if (!tmpl->texture || tmpl->digit_width <= 0 || tmpl->digit_height <= 0) {
+        app_err_push(__FILE__, __LINE__, "render_symbol: invalid template");
+        return -1;
+    }
+
+    int index=-1;
+    if(symbol>='0' && symbol<='9'){
+        index=symbol-'0';
+    }else if(symbol=='+'){
+        index=10;
+    }else if(symbol=='='){
+        index=11;
+    }else if(symbol=='-'){
+        index=12;
+    }else{
+        app_err_push(__FILE__, __LINE__, "render_symbol: unsupported symbol '%c'", symbol);
+        return -1;
+    }
+
+    SDL_Rect src = { index * tmpl->digit_width, 0, tmpl->digit_width, tmpl->digit_height };
+    SDL_Rect dst = { x, y, tmpl->digit_width, tmpl->digit_height };
+    if (SDL_RenderCopy(renderer, tmpl->texture, &src, &dst) != 0) {
+        app_err_push(__FILE__, __LINE__, "SDL_RenderCopy Error: %s", SDL_GetError());
+        return -1;
+    }
+    return 0;
+}
 
 int render_number(SDL_Renderer *renderer,const NUMBER_TEMPLATE *tmpl,int number,int x,int y){
     if (!renderer || !tmpl || number < 0) {
@@ -149,23 +199,24 @@ int render_number(SDL_Renderer *renderer,const NUMBER_TEMPLATE *tmpl,int number,
         return -1;
     }
 
-    char digits[32];
-    int length = SDL_snprintf(digits, sizeof(digits), "%d", number);
-    if (length <= 0 || length >= (int)sizeof(digits)) {
-        app_err_push(__FILE__, __LINE__, "render_number: invalid number conversion");
-        return -1;
+    unsigned char digits[32];
+    int length = 0;
+    while(number>0){
+        digits[length++] =  number % 10;
+        number /= 10;
+    }
+     // Reverse the digits to get the correct order
+    for (int i = 0; i < length / 2; ++i) {
+        char temp = digits[i];
+        digits[i] = digits[length - 1 - i];
+        digits[length - 1 - i] = temp;
     }
 
     for (int i = 0; i < length; ++i) {
-        char ch = digits[i];
-        if (ch < '0' || ch > '9') {
-            continue;
-        }
 
-        int index = ch - '0';
+        int index = digits[i];
         SDL_Rect src = { index * tmpl->digit_width, 0, tmpl->digit_width, tmpl->digit_height };
         SDL_Rect dst = { x + i * tmpl->digit_width, y, tmpl->digit_width, tmpl->digit_height };
-
         if (SDL_RenderCopy(renderer, tmpl->texture, &src, &dst) != 0) {
             app_err_push(__FILE__, __LINE__, "SDL_RenderCopy Error: %s", SDL_GetError());
             return -1;
