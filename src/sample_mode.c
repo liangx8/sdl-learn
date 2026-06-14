@@ -93,6 +93,13 @@ static void* sample_mode_init(APP_MODE *mode)
     return data;
 }
 int shutdown(void);
+int number_append(int src,int digit)
+{
+    if(src<0){
+        return digit;
+    }
+    return src*10+digit;
+}
 static int sample_mode_event(APP_MODE *mode, SDL_Event *event, void *data)
 {
     (void)mode;
@@ -103,17 +110,20 @@ static int sample_mode_event(APP_MODE *mode, SDL_Event *event, void *data)
         case SDLK_ESCAPE:
             shutdown();
             break;
+        case SDLK_BACKSPACE:
+            sample_data->classData.answer =-1;
+            break;
         case SDLK_RETURN:
         case SDLK_KP_ENTER:
             populate_random_class1(&sample_data->classData);
             break;
         case SDLK_0: case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
         case SDLK_5: case SDLK_6: case SDLK_7: case SDLK_8: case SDLK_9:
-            sample_data->classData.answer = event->key.keysym.sym - SDLK_0;
+            sample_data->classData.answer = number_append(sample_data->classData.answer, event->key.keysym.sym - SDLK_0);
             break;
         case SDLK_KP_0: case SDLK_KP_1: case SDLK_KP_2: case SDLK_KP_3: case SDLK_KP_4:
         case SDLK_KP_5: case SDLK_KP_6: case SDLK_KP_7: case SDLK_KP_8: case SDLK_KP_9:
-            sample_data->classData.answer = event->key.keysym.sym - SDLK_KP_0;
+            sample_data->classData.answer = number_append(sample_data->classData.answer, event->key.keysym.sym - SDLK_KP_0);
             break;
         default:
             break;
