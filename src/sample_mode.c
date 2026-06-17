@@ -131,6 +131,17 @@ static int sample_mode_event(APP_MODE *mode, SDL_Event *event, void *data)
     }
     return 0;
 }
+static int sample_mode_pause(APP_MODE *mode, void *data)
+{
+    (void)mode;
+    (void)data;
+    return 0;
+}
+static int sample_mode_resume(APP_MODE *mode, void *data)
+{    (void)mode;
+    (void)data;
+    return 0;
+}
 int render_sample_class(APP_MODE *mode, const CLASS_DATA *class_data, int x, int y,struct SAMPLE_DATA *sample_data)
 {
     if (!mode || !class_data || !sample_data) {
@@ -155,6 +166,7 @@ int render_sample_class(APP_MODE *mode, const CLASS_DATA *class_data, int x, int
     }
     return 0;
 }
+
 static int sample_mode_render(APP_MODE *mode, void *data)
 {
     if (!mode || !mode->window || !mode->renderer || !data) {
@@ -244,4 +256,6 @@ const AbstractModeVTable sample_mode_vtable = {
     .event = sample_mode_event,
     .render = sample_mode_render,
     .destroy = sample_mode_destroy,
+    .pause = sample_mode_pause,
+    .resume = sample_mode_resume
 };

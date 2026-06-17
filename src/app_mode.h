@@ -16,6 +16,8 @@ typedef struct AbstractModeVTable {
     int (*event)(APP_MODE *mode, SDL_Event *event,void *data);
     int (*render)(APP_MODE *mode,void *data);
     int (*destroy)(APP_MODE *mode, void *data);
+    int (*pause)(APP_MODE *mode, void *data);
+    int (*resume)(APP_MODE *mode, void *data);
 } AbstractModeVTable;
 struct MODE_BIND{
     const AbstractModeVTable *vtable;
