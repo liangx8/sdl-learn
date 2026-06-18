@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <SDL2/SDL.h>
+#include "app_mode.h"
 #include "sdl_app.h"
 #include "app_err.h"
 #include "list.h"
@@ -64,12 +65,14 @@ void sdl_app_destroy(SdlApp *app)
 }
 
 
-int sdl_app_run(SdlApp *app)
+int sdl_app_run(SdlApp *app,STAGE *startup)
 {
     if (!app || !app->renderer) {
         return -1;
     }
     struct _sdlapp_internal *app_intr=(struct _sdlapp_internal *)app;
+    list_push(app_intr->mode_stack,startup);
+    STAGE *cur=startup;
     SDL_Event event;
     while (1) {
         if (SDL_WaitEvent(&event)) {
@@ -80,16 +83,9 @@ int sdl_app_run(SdlApp *app)
             app_err_push(__FILE__, __LINE__, "SDL_WaitEvent Error: %s", SDL_GetError());
             return -1;
         }
+        cur->action->event(app,&event,cur->stage_data);
+        cur->action->render(app,cur->stage_data);
 
-        SDL_SetRenderDrawColor(app->renderer, 16, 24, 48, 255);
-        SDL_RenderClear(app->renderer);
-
-        SDL_SetRenderDrawColor(app->renderer, 200, 200, 220, 255);
-        SDL_Rect rect = {app->width / 4, app->height / 4, app->width / 2, app->height / 2};
-        SDL_RenderFillRect(app->renderer, &rect);
-
-        SDL_RenderPresent(app->renderer);
-        SDL_Delay(16);
     }
     return 0;
 }

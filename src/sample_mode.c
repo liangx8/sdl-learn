@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include "app_mode.h"
+#include "sdl_app.h"
 #include "texture_func.h"
 #include "sample_class.h"
 const SDL_Color COLOR_WHITE = {255, 255, 255, 255};
@@ -24,7 +25,7 @@ struct SAMPLE_DATA {
 };
 extern void app_err_push(const char *file, int line, const char *fmt, ...);
 
-static void* sample_mode_init(APP_MODE *mode)
+static void* sample_mode_init(SdlApp *mode)
 {
     struct SAMPLE_DATA *data = malloc(sizeof(*data));
     if (!data) {
@@ -100,7 +101,7 @@ int number_append(int src,int digit)
     }
     return src*10+digit;
 }
-static int sample_mode_event(APP_MODE *mode, SDL_Event *event, void *data)
+static int sample_mode_event(SdlApp *mode, SDL_Event *event, void *data)
 {
     (void)mode;
     struct SAMPLE_DATA *sample_data = data;
@@ -131,18 +132,18 @@ static int sample_mode_event(APP_MODE *mode, SDL_Event *event, void *data)
     }
     return 0;
 }
-static int sample_mode_pause(APP_MODE *mode, void *data)
+static int sample_mode_pause(SdlApp *mode, void *data)
 {
     (void)mode;
     (void)data;
     return 0;
 }
-static int sample_mode_resume(APP_MODE *mode, void *data)
+static int sample_mode_resume(SdlApp *mode, void *data)
 {    (void)mode;
     (void)data;
     return 0;
 }
-int render_sample_class(APP_MODE *mode, const CLASS_DATA *class_data, int x, int y,struct SAMPLE_DATA *sample_data)
+int render_sample_class(SdlApp *mode, const CLASS_DATA *class_data, int x, int y,struct SAMPLE_DATA *sample_data)
 {
     if (!mode || !class_data || !sample_data) {
         app_err_push(__FILE__, __LINE__, "render_sample_class: invalid arguments");
@@ -167,7 +168,7 @@ int render_sample_class(APP_MODE *mode, const CLASS_DATA *class_data, int x, int
     return 0;
 }
 
-static int sample_mode_render(APP_MODE *mode, void *data)
+static int sample_mode_render(SdlApp *mode, void *data)
 {
     if (!mode || !mode->window || !mode->renderer || !data) {
         app_err_push(__FILE__, __LINE__, "sample_mode_render: invalid arguments");
@@ -229,7 +230,7 @@ static int sample_mode_render(APP_MODE *mode, void *data)
     return 0;
 }
 
-static int sample_mode_destroy(APP_MODE *mode, void *data)
+static int sample_mode_destroy(SdlApp *mode, void *data)
 {
     (void)mode;
     if (data) {
@@ -252,7 +253,6 @@ static int sample_mode_destroy(APP_MODE *mode, void *data)
 }
 
 const AbstractModeVTable sample_mode_vtable = {
-    .init = sample_mode_init,
     .event = sample_mode_event,
     .render = sample_mode_render,
     .destroy = sample_mode_destroy,
