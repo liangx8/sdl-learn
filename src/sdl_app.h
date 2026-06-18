@@ -6,20 +6,25 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+typedef struct _SdlApp SdlApp;
+typedef struct _app_layout{
+    int (*sdl_init)(void);
+    void (*sdl_quit)(void);
+    int (*app_init)(SdlApp *);
+    void (*app_destroy)(SdlApp *);
+} APP_LAYOUT;
+
 typedef struct _stage STAGE;
 typedef struct _SdlApp {
+    const APP_LAYOUT *layout;
     SDL_Window* window;
     SDL_Renderer* renderer;
-    void *app_data;
-    void (*before_destroy)(void *app_data);
     int width;
     int height;
-    int running;// @deprecated
-} SdlApp;
+};
 
 SdlApp* sdl_app_create(
-    int (*sdl_init)(void **app_data),
-    void (*before_destroy)(void *app_data),
+    APP_LAYOUT *layout,
     const char *title, 
     int width, 
     int height);

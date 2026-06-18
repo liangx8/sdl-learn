@@ -10,7 +10,7 @@ static const char *WELCOME_TEXT = "SDL2 例程🌍";
 
 
 
-int app_init(void **ref)
+int main_sdl_init(void)
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         app_err_push(__FILE__, __LINE__, "SDL_Init Error: %s", SDL_GetError());
@@ -21,26 +21,41 @@ int app_init(void **ref)
         SDL_Quit();
         return 1;
     }
-    *ref=NULL;
     return 0;
 }
-void before_destroy(void *data)
+void main_sdl_quit(void)
 {
-    (void)data;
     TTF_Quit();
     SDL_Quit();
 }
+int main_app_init(SdlApp *app)
+{
+    (void)app;
+    return 0;
+}
+void main_app_destroy(SdlApp *app)
+{
+    (void)app;
+}
+const APP_LAYOUT layout={
+    .app_destroy=main_app_destroy,
+    .app_init=main_app_init,
+    .sdl_init=main_sdl_init,
+    .sdl_quit=main_sdl_quit
+};
+
 int main(int argc, char *argv[])
 {
     (void)argc;
     (void)argv;
 
-    SdlApp *app=sdl_app_create(app_init,before_destroy,WELCOME_TEXT,WINDOW_WIDTH,WINDOW_HEIGHT);
+    SdlApp *app=sdl_app_create(&layout,WELCOME_TEXT,WINDOW_WIDTH,WINDOW_HEIGHT);
     if(app==NULL){
         err_stack_print();
         return -1;
     }
-    sdl_app_run(app);
+    // 创建一个STAGE的实例
+    sdl_app_run(app,stage_obj);
     sdl_app_destroy(app);
     return 0;
 }
