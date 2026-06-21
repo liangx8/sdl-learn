@@ -18,13 +18,13 @@ typedef struct _LIST LIST;
 LIST* list_create(int capacity);
 
 /* Push an item into the list. Returns 1 on success, 0 on failure. */
-int list_push(LIST *list, void *item);
+int list_push(LIST *list,const void *item);
 
 /* Pop the last pushed item from the list; returns the item or NULL if empty. */
-void* list_pop(LIST *list);
+const void* list_pop(LIST *list);
 
 /* Get the last item without removing it; returns NULL if empty. */
-void* list_get_last(const LIST *list);
+const void* list_get_last(const LIST *list);
 
 /* Destroy the list and free its memory. */
 void list_destroy(LIST *list);

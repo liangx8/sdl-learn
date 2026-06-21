@@ -14,8 +14,8 @@ typedef struct _app_layout{
     void (*app_destroy)(SdlApp *);
 } APP_LAYOUT;
 
-typedef struct _stage STAGE;
-typedef struct _SdlApp {
+typedef struct _AbstractActionVTable AbstractActionVTable;
+struct _SdlApp {
     const APP_LAYOUT *layout;
     SDL_Window* window;
     SDL_Renderer* renderer;
@@ -24,12 +24,12 @@ typedef struct _SdlApp {
 };
 
 SdlApp* sdl_app_create(
-    APP_LAYOUT *layout,
+    const APP_LAYOUT *layout,
     const char *title, 
     int width, 
     int height);
 void sdl_app_destroy(SdlApp* app);
-int sdl_app_run(SdlApp* app,STAGE *);
+int sdl_app_run(SdlApp* app,const AbstractActionVTable *startup);
 
 #ifdef __cplusplus
 }

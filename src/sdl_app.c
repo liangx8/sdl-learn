@@ -13,7 +13,7 @@ SdlApp *sdl_app_create(
     const APP_LAYOUT *layout,
     const char *title, int width, int height)
 {
-    if(layout==NULL||layout->sdl_init==NULL||layout->sdl_quit==NULL||layout->app_init==NULL||layout->app_destroy==NULL){
+    if(layout==NULL||layout->sdl_init==NULL||layout->sdl_quit==NULL){
         return NULL;
     }
     struct _sdlapp_internal *app_intr = (struct _sdlapp_internal *)malloc(sizeof(struct _sdlapp_internal));
@@ -36,7 +36,7 @@ SdlApp *sdl_app_create(
         free(app);
         return NULL;
     }
-    if(layout->app_init(app)){
+    if(layout->app_init && (layout->app_init(app)!=0)){
         SDL_DestroyRenderer(app->renderer);
         SDL_DestroyWindow(app->window);
         list_destroy(app_intr->mode_stack);
@@ -46,6 +46,7 @@ SdlApp *sdl_app_create(
     }
     app->width = width;
     app->height = height;
+    SDL_Log("expect size (%d,%d)",width,height);
     SDL_SetWindowTitle(app->window, title ? title : "SDL App");
     return app;
 }
@@ -57,7 +58,9 @@ void sdl_app_destroy(SdlApp *app)
         return;
     }
     struct _sdlapp_internal *app_intr=(struct _sdlapp_internal *)app;
-    app->layout->app_destroy(app);
+    if(app->layout->app_destroy){
+        app->layout->app_destroy(app);
+    }
     if (app->renderer) {
         SDL_DestroyRenderer(app->renderer);
     }
@@ -70,12 +73,19 @@ void sdl_app_destroy(SdlApp *app)
     free(app);
 }
 
-
-int sdl_app_run(SdlApp *app,STAGE *startup)
+int shutdown(void){
+    SDL_Event event;
+    event.type = SDL_QUIT;
+    if (SDL_PushEvent(&event) != 1) {
+        app_err_push(__FILE__, __LINE__, "SDL_PushEvent Error: %s", SDL_GetError());
+        return 1;
+    }
+    return 0;
+}
+int sdl_app_run(SdlApp *app,const AbstractActionVTable *startup)
 {
     struct _sdlapp_internal *app_intr=(struct _sdlapp_internal *)app;
     list_push(app_intr->mode_stack,startup);
-    STAGE *cur=startup;
     SDL_Event event;
     int retval=0;
     while (1) {
@@ -88,16 +98,17 @@ int sdl_app_run(SdlApp *app,STAGE *startup)
             retval=-1;
             goto err_exit;
         }
-        cur->action->event(app,&event,cur->stage_data);
-        cur->action->render(app,cur->stage_data);
+        startup->event(app,&event);
+        startup->render(app);
+        SDL_RenderPresent(app->renderer);
     }
 err_exit:
     while(1){
-        STAGE *st=list_pop(app_intr->mode_stack);
+        const AbstractActionVTable *st=list_pop(app_intr->mode_stack);
         if(st==NULL){
             break;
         }
-        st->action->destroy(app,st->stage_data);
+        st->destroy(app);
     }
     return retval;
 }

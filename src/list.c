@@ -4,7 +4,7 @@
 typedef struct _LIST {
     int tail;         // Number of elements currently stored in the list
     int capacity;     // Maximum number of elements the list can hold
-    void *data[];     // Flexible array of void* data elements
+    const void *data[];     // Flexible array of void* data elements
 } LIST;
 
 LIST* list_create(int capacity) {
@@ -20,7 +20,7 @@ LIST* list_create(int capacity) {
     return list;
 }
 
-int list_push(LIST *list, void *item) {
+int list_push(LIST *list,const void *item) {
     if (!list || list->tail < 0 || list->tail >= list->capacity) {
         return 0;
     }
@@ -28,16 +28,16 @@ int list_push(LIST *list, void *item) {
     return 1;
 }
 
-void* list_pop(LIST *list) {
+const void* list_pop(LIST *list) {
     if (!list || list->tail <= 0) {
         return NULL;
     }
-    void *item = list->data[--list->tail];
+    const void *item = list->data[--list->tail];
     list->data[list->tail] = NULL;
     return item;
 }
 
-void* list_get_last(const LIST *list) {
+const void* list_get_last(const LIST *list) {
     if (!list || list->tail <= 0) {
         return NULL;
     }

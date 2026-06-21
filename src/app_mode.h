@@ -7,23 +7,19 @@ extern "C" {
 
 #include <stdint.h>
 #include <SDL2/SDL.h>
-typedef struct _sdl_app SdlApp;
+typedef struct _SdlApp SdlApp;
 
 /* Abstract mode interface for SDL-based applications. */
-typedef struct AbstractModeVTable {
-    // void* (*init)(SdlApp *stage);
+typedef struct _AbstractActionVTable {
+    int (*init)(SdlApp *mode);
 
     // event handler
-    int (*event)(SdlApp *mode, SDL_Event *event,void *data);
-    int (*render)(SdlApp *mode,void *data);
-    int (*destroy)(SdlApp *mode, void *data);
-    int (*pause)(SdlApp *mode, void *data);
-    int (*resume)(SdlApp *mode, void *data);
-} AbstractModeVTable;
-typedef struct _stage {
-    AbstractModeVTable *action;
-    void *stage_data;
-} STAGE;
+    int (*event)(SdlApp *mode, SDL_Event *event);
+    int (*render)(SdlApp *mode);
+    int (*destroy)(SdlApp *mode);
+    int (*pause)(SdlApp *mode);
+    int (*resume)(SdlApp *mode);
+} AbstractActionVTable;
 
 #ifdef __cplusplus
 }
