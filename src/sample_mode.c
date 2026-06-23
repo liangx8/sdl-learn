@@ -15,7 +15,6 @@ const char *strCursor = "⬆";
 const char *strIcons = "✅❌";
 extern void app_err_push(const char *file, int line, const char *fmt, ...);
 static struct SAMPLE_DATA sample_data;
-int render_sample_class(SdlApp *mode, const CLASS_DATA *class_data, int x, int y);
 
 struct SAMPLE_DATA {
     SDL_Texture *textureTwenty;
@@ -66,8 +65,7 @@ static int _sample_answer_render(SdlApp *app)
         .h = sample_data.heightIcons
     };
     SDL_Rect icon_src = {sample_data.widthIcons/2,0,sample_data.widthIcons/2,sample_data.heightIcons};
-    SDL_Log("%d + %d = %d | %d",sample_data.classData.operand[0],sample_data.classData.operand[1],sample_data.classData.answer,sample_data.widthIcons);
-    if(sample_data.classData.answer==sample_data.classData.operand[0]+sample_data.classData.operand[1]){
+    if(class_check(&sample_data.classData)){
         icon_src.x=0;
     }
     if(sample_data.classData.answer>=0){
@@ -118,6 +116,7 @@ static int _sample_event(SdlApp *app,SDL_Event *event)
     }
     return 0;
 }
+int render_sample_class(SdlApp *mode,CLASS_DATA *cls, int x,int y);
 static int _sample_render(SdlApp *app)
 {
     if (!app || !app->window || !app->renderer ) {
@@ -194,6 +193,7 @@ int sample_mode_init(SdlApp *mode)
 {
     sample_data.event=_sample_event;
     sample_data.render=_sample_render;
+    sample_data.classData.seq=0;
     sample_data.textureTwenty = create_texture_by_string(mode->renderer, cjkfont[0], 30, strTwenty, COLOR_WHITE);
 
     if (!sample_data.textureTwenty) {
@@ -263,7 +263,10 @@ int sample_mode_init(SdlApp *mode)
         SDL_DestroyTexture(sample_data.textureCursor);
         return -1;
     }
-
+    sample_data.classData.idx=100;
+    for (int i = 0; i <= 80; ++i) {
+        sample_data.classData.num[i] = (uint64_t)i;
+    }
     populate_random_class1(&sample_data.classData);
     return 0;
 }
@@ -281,25 +284,29 @@ static int sample_mode_resume(SdlApp *mode)
 {    (void)mode;
     return 0;
 }
-int render_sample_class(SdlApp *mode, const CLASS_DATA *class_data, int x, int y)
+int render_sample_class(SdlApp *mode,CLASS_DATA *cls, int x,int y)
 {
-    if (!mode || !class_data) {
-        app_err_push(__FILE__, __LINE__, "render_sample_class: invalid arguments");
-        return -1;
-    }
-    int result = render_number(mode->renderer, sample_data.numberTemplate, class_data->operand[0], x, y);
+    uint64_t num=cls->num[cls->idx];
+    int opr2=num%9 + 1;
+    num=num / 9;
+    int opr1=num%9 +1;
+    int result = render_number(mode->renderer, sample_data.numberTemplate, cls->seq, x, y);
     if (result != 0) {
         return -1;
     }
-    result = render_symbol(mode->renderer, sample_data.numberTemplate, '=', x + sample_data.numberTemplate->digit_width * 2, y);
+    result = render_number(mode->renderer, sample_data.numberTemplate, opr1, x + sample_data.numberTemplate->digit_width * 2, y+sample_data.numberTemplate->digit_height);
     if (result != 0) {
         return -1;
     }
-    result = render_number(mode->renderer, sample_data.numberTemplate, class_data->operand[1], x + sample_data.numberTemplate->digit_width * 4, y);
+    result = render_symbol(mode->renderer, sample_data.numberTemplate, '=', x + sample_data.numberTemplate->digit_width * 4, y+sample_data.numberTemplate->digit_height);
     if (result != 0) {
         return -1;
     }
-    result = render_symbol(mode->renderer, sample_data.numberTemplate, '+', x + sample_data.numberTemplate->digit_width * 6, y);
+    result = render_number(mode->renderer, sample_data.numberTemplate, opr2, x + sample_data.numberTemplate->digit_width * 6, y+sample_data.numberTemplate->digit_height);
+    if (result != 0) {
+        return -1;
+    }
+    result = render_symbol(mode->renderer, sample_data.numberTemplate, '+', x + sample_data.numberTemplate->digit_width * 8, y+sample_data.numberTemplate->digit_height);
     if (result != 0) {
         return -1;
     }
