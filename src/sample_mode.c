@@ -168,6 +168,7 @@ static int _sample_render(SdlApp *app)
 
     return 0;
 }
+void log_class(CLASS_DATA *data);
 static int _sample_answer_event(SdlApp *app,SDL_Event *event)
 {
     (void)app;
@@ -181,6 +182,7 @@ static int _sample_answer_event(SdlApp *app,SDL_Event *event)
         case SDLK_KP_ENTER:
             sample_data.event=_sample_event;
             sample_data.render=_sample_render;
+            log_class(&sample_data.classData);
             populate_random_class1(&sample_data.classData);
             break;
         default:
