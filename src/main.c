@@ -36,10 +36,19 @@ const APP_LAYOUT layout={
     .sdl_quit=main_sdl_quit
 };
 extern const AbstractActionVTable sample_mode_vtable;
+void auto_cleanup(void *ptr) {
+    if (ptr!=NULL) {
+        SDL_Log("auto_cleanup: cleaning up pointer %d", *((int *)ptr));
+    }
+}
+__attribute__ ((destructor)) void cleanup_function(void) {
+    SDL_Log("cleanup_function: program is exiting, performing cleanup");
+}
 int main(int argc, char *argv[])
 {
     (void)argc;
     (void)argv;
+    __attribute__((cleanup(auto_cleanup))) int aa=10;
 
     SdlApp *app=sdl_app_create(&layout,WELCOME_TEXT,WINDOW_WIDTH,WINDOW_HEIGHT);
     if(app==NULL){

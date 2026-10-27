@@ -18,7 +18,5 @@
         "abc.h": "c",
         "game_block.h": "c"
     },
-    "editor.fontSize": 11,
-    "editor.fontFamily": "'Noto Sans Mono CJK SC','Droid Sans Mono', 'monospace', monospace",
     "workbench.colorTheme": "Default High Contrast Light"
 }

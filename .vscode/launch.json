@@ -11,6 +11,7 @@
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}/src",
             "MIMode": "gdb",
+            "environment": [{"name": "SDL_VIDEODRIVER", "value": "wayland"}],
             "request": "launch"
         }
     ]
